@@ -38,11 +38,13 @@ class SourceKlaviyo(AbstractSource):
         """
         ok = False
         error_msg = None
-        config = ConnectorConfig.parse_obj(config)  # FIXME: this will be not need after we fix CDK
+        # FIXME: this will be not need after we fix CDK
+        config = ConnectorConfig.parse_obj(config)
 
         try:
             # we use metrics endpoint because it never return an error
-            _ = list(Metrics(api_key=config.api_key).read_records(sync_mode=SyncMode.full_refresh))
+            _ = list(Metrics(api_key=config.api_key).read_records(
+                sync_mode=SyncMode.full_refresh))
             ok = True
         except Exception as e:
             error_msg = repr(e)
@@ -54,11 +56,13 @@ class SourceKlaviyo(AbstractSource):
 
         :param config: A Mapping of the user input configuration as defined in the connector spec.
         """
-        config = ConnectorConfig.parse_obj(config)  # FIXME: this will be not need after we fix CDK
+        config = ConnectorConfig.parse_obj(
+            config)  # FIXME: this will be not need after we fix CDK
         return [
             Campaigns(api_key=config.api_key),
             Events(api_key=config.api_key, start_date=config.start_date),
-            GlobalExclusions(api_key=config.api_key, start_date=config.start_date),
+            GlobalExclusions(api_key=config.api_key,
+                             start_date=config.start_date),
             Lists(api_key=config.api_key),
             Metrics(api_key=config.api_key),
         ]
