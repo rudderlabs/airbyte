@@ -126,20 +126,13 @@ class API:
 
     def __init__(self, credentials: Mapping[str, Any]):
         self._session = requests.Session()
-        credentials_title = credentials.get("credentials_title")
-
-        if credentials_title == "OAuth Credentials":
-            self._session.auth = Oauth2Authenticator(
-                token_refresh_endpoint=self.BASE_URL + "/oauth/v1/token",
-                client_id=credentials["client_id"],
-                client_secret=credentials["client_secret"],
-                refresh_token=credentials["refresh_token"],
-            )
-        elif credentials_title == "API Key Credentials":
-            self._session.params["hapikey"] = credentials.get("api_key")
-        else:
-            raise Exception("No supported `credentials_title` specified. See spec.json for references")
-
+        self._session.auth = Oauth2Authenticator(
+                            token_refresh_endpoint=self.BASE_URL + "/oauth/v1/token",
+                            client_id=credentials["client_id"],
+                            client_secret=credentials["client_secret"],
+                            refresh_token=credentials["refresh_token"],
+                        )
+        
         self._session.headers = {
             "Content-Type": "application/json",
             "User-Agent": self.USER_AGENT,
