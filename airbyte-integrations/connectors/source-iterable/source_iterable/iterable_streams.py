@@ -47,6 +47,15 @@ class IterableStream(HttpStream, ABC):
     def request_params(self, **kwargs) -> MutableMapping[str, Any]:
         return {"api_key": self._api_key}
 
+
+    def request_headers(
+        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> Mapping[str, Any]:
+        headers = super().request_headers(stream_state=stream_state,
+                                          stream_slice=stream_slice, next_page_token=next_page_token)
+        headers.update({"api-key": self._api_key})
+        return headers
+
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         response_json = response.json()
         records = response_json.get(self.data_field, [])
