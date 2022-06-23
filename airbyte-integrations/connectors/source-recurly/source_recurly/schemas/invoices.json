@@ -921,7 +921,7 @@
               }
             }
           },
-          "begin_time": {
+          "start_date": {
             "type": ["null", "string"],
             "format": "date-time",
             "title": "Start date",
