@@ -26,52 +26,28 @@
           "developer_token": {
             "type": "string",
             "title": "Developer Token",
-<<<<<<< HEAD
-            "description": "Developer token granted by Google to use their APIs.",
-=======
             "order": 0,
-            "description": "Developer token granted by Google to use their APIs. More instruction on how to find this value in our <a href=\"https://docs.airbyte.com/integrations/sources/google-ads#setup-guide\">docs</a>",
->>>>>>> upstream/master
+            "description": "Developer token granted by Google to use their APIs.",
             "airbyte_secret": true
           },
           "client_id": {
             "type": "string",
             "title": "Client ID",
-<<<<<<< HEAD
-            "description": "The Client ID of your Google Ads developer application."
-=======
             "order": 1,
-            "description": "The Client ID of your Google Ads developer application. More instruction on how to find this value in our <a href=\"https://docs.airbyte.com/integrations/sources/google-ads#setup-guide\">docs</a>"
->>>>>>> upstream/master
+            "description": "The Client ID of your Google Ads developer application."
           },
           "client_secret": {
             "type": "string",
             "title": "Client Secret",
-<<<<<<< HEAD
-            "description": "The Client Secret of your Google Ads developer application.",
-            "airbyte_secret": true
-          },
-          "access_token": {
-            "type": "string",
-            "title": "Access Token",
-            "description": "Access Token for making authenticated requests.",
-            "airbyte_secret": true
-          },
-          "refresh_token": {
-            "type": "string",
-            "title": "Refresh Token",
-            "description": "The token for obtaining a new access token.",
-=======
             "order": 2,
-            "description": "The Client Secret of your Google Ads developer application. More instruction on how to find this value in our <a href=\"https://docs.airbyte.com/integrations/sources/google-ads#setup-guide\">docs</a>",
+            "description": "The Client Secret of your Google Ads developer application.",
             "airbyte_secret": true
           },
           "refresh_token": {
             "type": "string",
             "title": "Refresh Token",
             "order": 3,
-            "description": "The token for obtaining a new access token. More instruction on how to find this value in our <a href=\"https://docs.airbyte.com/integrations/sources/google-ads#setup-guide\">docs</a>",
->>>>>>> upstream/master
+            "description": "The token for obtaining a new access token.",
             "airbyte_secret": true
           },
           "access_token": {
@@ -86,7 +62,7 @@
       "customer_id": {
         "title": "Customer ID(s)",
         "type": "string",
-        "description": "Customer ID must be specified as a 10-digit number without dashes. Metrics streams like AdGroupAdReport cannot be requested for a manager account.",
+        "description": "Comma separated list of (client) customer IDs. Each customer ID must be specified as a 10-digit number without dashes.  ",
         "pattern": "^[0-9]{10}(,[0-9]{10})*$",
         "examples": ["6783948572,5839201945"],
         "order": 1

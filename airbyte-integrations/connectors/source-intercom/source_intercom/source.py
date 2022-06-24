@@ -93,13 +93,10 @@ class IntercomStream(HttpStream, ABC):
 class IncrementalIntercomStream(IntercomStream, ABC):
     cursor_field = "updated_at"
 
-<<<<<<< HEAD
     # TODO: Override __init__ to properly set stream_state based on start_date when state is empty
-=======
     def __init__(self, authenticator: AuthBase, start_date: str = None, **kwargs):
         super().__init__(authenticator, start_date, **kwargs)
         self.has_old_records = False
->>>>>>> upstream/master
 
     def filter_by_state(self, stream_state: Mapping[str, Any] = None, record: Mapping[str, Any] = None) -> Iterable:
         """
