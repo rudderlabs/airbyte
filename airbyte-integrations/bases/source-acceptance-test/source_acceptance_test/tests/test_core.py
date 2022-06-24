@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021 Airbyte, Inc., all rights reserved.
+# Copyright (c) 2022 Airbyte, Inc., all rights reserved.
 #
 
 import json
@@ -13,13 +13,23 @@ from typing import Any, Dict, List, Mapping, MutableMapping, Set
 import dpath.util
 import jsonschema
 import pytest
-from airbyte_cdk.models import AirbyteRecordMessage, ConfiguredAirbyteCatalog, ConnectorSpecification, Status, Type
+from airbyte_cdk.models import (
+    AirbyteRecordMessage,
+    AirbyteStream,
+    ConfiguredAirbyteCatalog,
+    ConfiguredAirbyteStream,
+    ConnectorSpecification,
+    Status,
+    SyncMode,
+    TraceType,
+    Type,
+)
 from docker.errors import ContainerError
 from jsonschema._utils import flatten
 from source_acceptance_test.base import BaseTest
 from source_acceptance_test.config import BasicReadTestConfig, ConnectionTestConfig
 from source_acceptance_test.utils import ConnectorRunner, SecretDict, filter_output, make_hashable, verify_records_schema
-from source_acceptance_test.utils.common import find_key_inside_schema
+from source_acceptance_test.utils.common import find_key_inside_schema, find_keyword_schema
 from source_acceptance_test.utils.json_schema_helper import JsonSchemaHelper, get_expected_schema_structure, get_object_structure
 
 
@@ -59,7 +69,7 @@ class TestSpec(BaseTest):
     def test_match_expected(self, connector_spec: ConnectorSpecification, actual_connector_spec: ConnectorSpecification):
         """Check that spec call returns a spec equals to expected one"""
         if connector_spec:
-            assert actual_connector_spec == connector_spec, "Spec should be equal to the one in spec.json file"
+            assert actual_connector_spec == connector_spec, "Spec should be equal to the one in spec.yaml or spec.json file"
 
     def test_docker_env(self, actual_connector_spec: ConnectorSpecification, docker_runner: ConnectorRunner):
         """Check that connector's docker image has required envs"""
@@ -76,27 +86,40 @@ class TestSpec(BaseTest):
         docs_msg = f"See specification reference at {docs_url}."
 
         schema_helper = JsonSchemaHelper(actual_connector_spec.connectionSpecification)
-        variant_paths = schema_helper.find_variant_paths()
+        variant_paths = schema_helper.find_nodes(keys=["oneOf", "anyOf"])
 
         for variant_path in variant_paths:
-            top_level_obj = dpath.util.get(self._schema, "/".join(variant_path[:-1]))
-            if "$ref" in top_level_obj:
-                obj_def = top_level_obj["$ref"].split("/")[-1]
-                top_level_obj = self._schema["definitions"][obj_def]
+            top_level_obj = schema_helper.get_node(variant_path[:-1])
             assert (
                 top_level_obj.get("type") == "object"
             ), f"The top-level definition in a `oneOf` block should have type: object. misconfigured object: {top_level_obj}. {docs_msg}"
 
-            variants = dpath.util.get(self._schema, "/".join(variant_path))
+            variants = schema_helper.get_node(variant_path)
             for variant in variants:
                 assert "properties" in variant, f"Each item in the oneOf array should be a property with type object. {docs_msg}"
 
-            variant_props = [set(list(v["properties"].keys())) for v in variants]
+            oneof_path = ".".join(variant_path)
+            variant_props = [set(v["properties"].keys()) for v in variants]
             common_props = set.intersection(*variant_props)
-            assert common_props, "There should be at least one common property for oneOf subobjects"
-            assert any(
-                [all(["const" in var["properties"][prop] for var in variants]) for prop in common_props]
-            ), f"Any of {common_props} properties in {'.'.join(variant_path)} has no const keyword. {docs_msg}"
+            assert common_props, f"There should be at least one common property for {oneof_path} subobjects. {docs_msg}"
+
+            const_common_props = set()
+            for common_prop in common_props:
+                if all(["const" in variant["properties"][common_prop] for variant in variants]):
+                    const_common_props.add(common_prop)
+            assert (
+                len(const_common_props) == 1
+            ), f"There should be exactly one common property with 'const' keyword for {oneof_path} subobjects. {docs_msg}"
+
+            const_common_prop = const_common_props.pop()
+            for n, variant in enumerate(variants):
+                prop_obj = variant["properties"][const_common_prop]
+                assert (
+                    "default" not in prop_obj
+                ), f"There should not be 'default' keyword in common property {oneof_path}[{n}].{const_common_prop}. Use `const` instead. {docs_msg}"
+                assert (
+                    "enum" not in prop_obj
+                ), f"There should not be 'enum' keyword in common property {oneof_path}[{n}].{const_common_prop}. Use `const` instead. {docs_msg}"
 
     def test_required(self):
         """Check that connector will fail if any required field is missing"""
@@ -200,6 +223,17 @@ class TestDiscovery(BaseTest):
 
         assert not schemas_errors, f"Found unresolved `$refs` values for selected streams: {tuple(schemas_errors)}."
 
+    @pytest.mark.parametrize("keyword", ["allOf", "not"])
+    def test_defined_keyword_exist_in_schema(self, keyword, discovered_catalog):
+        """Checking for the presence of not allowed keywords within each json schema"""
+        schemas_errors = []
+        for stream_name, stream in discovered_catalog.items():
+            check_result = find_keyword_schema(stream.json_schema, key=keyword)
+            if check_result:
+                schemas_errors.append(stream_name)
+
+        assert not schemas_errors, f"Found not allowed `{keyword}` keyword for selected streams: {schemas_errors}."
+
     def test_primary_keys_exist_in_schema(self, discovered_catalog: Mapping[str, Any]):
         """Check that all primary keys are present in catalog."""
         for stream_name, stream in discovered_catalog.items():
@@ -232,8 +266,8 @@ class TestBasicRead(BaseTest):
         just running schema validation is not enough case schema could have
         additionalProperties parameter set to true and no required fields
         therefore any arbitrary object would pass schema validation.
-        This method is here to catch those cases by extracting all the pathes
-        from the object and compare it to pathes expected from jsonschema. If
+        This method is here to catch those cases by extracting all the paths
+        from the object and compare it to paths expected from jsonschema. If
         there no common pathes then raise an alert.
 
         :param records: List of airbyte record messages gathered from connector instances.
@@ -376,6 +410,32 @@ class TestBasicRead(BaseTest):
             self._validate_expected_records(
                 records=records, expected_records=expected_records, flags=inputs.expect_records, detailed_logger=detailed_logger
             )
+
+    def test_airbyte_trace_message_on_failure(self, connector_config, inputs: BasicReadTestConfig, docker_runner: ConnectorRunner):
+        if not inputs.expect_trace_message_on_failure:
+            pytest.skip("Skipping `test_airbyte_trace_message_on_failure` because `inputs.expect_trace_message_on_failure=False`")
+            return
+
+        invalid_configured_catalog = ConfiguredAirbyteCatalog(
+            streams=[
+                # create ConfiguredAirbyteStream without validation
+                ConfiguredAirbyteStream.construct(
+                    stream=AirbyteStream(
+                        name="__AIRBYTE__stream_that_does_not_exist",
+                        json_schema={"type": "object", "properties": {"f1": {"type": "string"}}},
+                        supported_sync_modes=[SyncMode.full_refresh],
+                    ),
+                    sync_mode="INVALID",
+                    destination_sync_mode="INVALID",
+                )
+            ]
+        )
+
+        output = docker_runner.call_read(connector_config, invalid_configured_catalog, raise_container_error=False)
+        trace_messages = filter_output(output, Type.TRACE)
+        error_trace_messages = list(filter(lambda m: m.trace.type == TraceType.ERROR, trace_messages))
+
+        assert len(error_trace_messages) >= 1, "Connector should emit at least one error trace message"
 
     @staticmethod
     def remove_extra_fields(record: Any, spec: Any) -> Any:
