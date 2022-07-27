@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Airbyte, Inc., all rights reserved.
+ * Copyright (c) 2022 Airbyte, Inc., all rights reserved.
  */
 
 package io.airbyte.integrations.source.mongodb;
@@ -13,6 +13,7 @@ import com.google.common.collect.Lists;
 import com.mongodb.client.MongoCollection;
 import io.airbyte.commons.json.Jsons;
 import io.airbyte.commons.resources.MoreResources;
+import io.airbyte.db.jdbc.JdbcUtils;
 import io.airbyte.db.mongodb.MongoDatabase;
 import io.airbyte.integrations.standardtest.source.SourceAcceptanceTest;
 import io.airbyte.integrations.standardtest.source.TestDestinationEnv;
@@ -22,11 +23,10 @@ import io.airbyte.protocol.models.ConfiguredAirbyteStream;
 import io.airbyte.protocol.models.ConnectorSpecification;
 import io.airbyte.protocol.models.DestinationSyncMode;
 import io.airbyte.protocol.models.Field;
-import io.airbyte.protocol.models.JsonSchemaPrimitive;
+import io.airbyte.protocol.models.JsonSchemaType;
 import io.airbyte.protocol.models.SyncMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import org.bson.BsonArray;
@@ -62,29 +62,29 @@ public class MongodbSourceStrictEncryptAcceptanceTest extends SourceAcceptanceTe
               + ". Override by setting setting path with the CREDENTIALS_PATH constant.");
     }
 
-    final String credentialsJsonString = new String(Files.readAllBytes(CREDENTIALS_PATH));
+    final String credentialsJsonString = Files.readString(CREDENTIALS_PATH);
     final JsonNode credentialsJson = Jsons.deserialize(credentialsJsonString);
 
     final JsonNode instanceConfig = Jsons.jsonNode(ImmutableMap.builder()
         .put("instance", STANDALONE.getType())
-        .put("host", credentialsJson.get("host").asText())
-        .put("port", credentialsJson.get("port").asInt())
+        .put(JdbcUtils.HOST_KEY, credentialsJson.get(JdbcUtils.HOST_KEY).asText())
+        .put(JdbcUtils.PORT_KEY, credentialsJson.get(JdbcUtils.PORT_KEY).asInt())
         .build());
 
     config = Jsons.jsonNode(ImmutableMap.builder()
         .put("user", credentialsJson.get("user").asText())
-        .put("password", credentialsJson.get("password").asText())
+        .put(JdbcUtils.PASSWORD_KEY, credentialsJson.get(JdbcUtils.PASSWORD_KEY).asText())
         .put("instance_type", instanceConfig)
-        .put("database", DATABASE_NAME)
+        .put(JdbcUtils.DATABASE_KEY, DATABASE_NAME)
         .put("auth_source", "admin")
         .build());
 
     final String connectionString = String.format("mongodb://%s:%s@%s:%s/%s?authSource=admin&directConnection=false&ssl=true",
         config.get("user").asText(),
-        config.get("password").asText(),
-        config.get("instance_type").get("host").asText(),
-        config.get("instance_type").get("port").asText(),
-        config.get("database").asText());
+        config.get(JdbcUtils.PASSWORD_KEY).asText(),
+        config.get("instance_type").get(JdbcUtils.HOST_KEY).asText(),
+        config.get("instance_type").get(JdbcUtils.PORT_KEY).asText(),
+        config.get(JdbcUtils.DATABASE_KEY).asText());
 
     database = new MongoDatabase(connectionString, DATABASE_NAME);
 
@@ -120,14 +120,14 @@ public class MongodbSourceStrictEncryptAcceptanceTest extends SourceAcceptanceTe
             .withCursorField(List.of("_id"))
             .withStream(CatalogHelpers.createAirbyteStream(
                 DATABASE_NAME + "." + COLLECTION_NAME,
-                Field.of("_id", JsonSchemaPrimitive.STRING),
-                Field.of("id", JsonSchemaPrimitive.STRING),
-                Field.of("name", JsonSchemaPrimitive.STRING),
-                Field.of("test", JsonSchemaPrimitive.STRING),
-                Field.of("test_array", JsonSchemaPrimitive.ARRAY),
-                Field.of("empty_test", JsonSchemaPrimitive.STRING),
-                Field.of("double_test", JsonSchemaPrimitive.NUMBER),
-                Field.of("int_test", JsonSchemaPrimitive.NUMBER))
+                Field.of("_id", JsonSchemaType.STRING),
+                Field.of("id", JsonSchemaType.STRING),
+                Field.of("name", JsonSchemaType.STRING),
+                Field.of("test", JsonSchemaType.STRING),
+                Field.of("test_array", JsonSchemaType.ARRAY),
+                Field.of("empty_test", JsonSchemaType.STRING),
+                Field.of("double_test", JsonSchemaType.NUMBER),
+                Field.of("int_test", JsonSchemaType.NUMBER))
                 .withSupportedSyncModes(Lists.newArrayList(SyncMode.INCREMENTAL))
                 .withDefaultCursorField(List.of("_id")))));
   }

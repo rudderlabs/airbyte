@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Airbyte, Inc., all rights reserved.
+ * Copyright (c) 2022 Airbyte, Inc., all rights reserved.
  */
 
 package io.airbyte.oauth.flows;
@@ -51,7 +51,7 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @BeforeEach
-  public void setup() throws JsonValidationException, IOException {
+  void setup() throws JsonValidationException, IOException {
     httpClient = mock(HttpClient.class);
     configRepository = mock(ConfigRepository.class);
     oauthFlow = getOAuthFlow();
@@ -180,7 +180,7 @@ public abstract class BaseOAuthFlowTest {
         "properties", properties));
   }
 
-  private OAuthConfigSpecification getoAuthConfigSpecification() {
+  protected OAuthConfigSpecification getoAuthConfigSpecification() {
     return new OAuthConfigSpecification()
         .withOauthUserInputFromConnectorConfigSpecification(getUserInputFromConnectorConfigSpecification())
         .withCompleteOauthOutputSpecification(getCompleteOAuthOutputSpecification())
@@ -197,13 +197,25 @@ public abstract class BaseOAuthFlowTest {
     return "state";
   }
 
+  protected String getMockedResponse() {
+    final Map<String, String> returnedCredentials = getExpectedOutput();
+    return Jsons.serialize(returnedCredentials);
+  }
+
+  protected OAuthConfigSpecification getOAuthConfigSpecification() {
+    return getoAuthConfigSpecification()
+        // change property types to induce json validation errors.
+        .withCompleteOauthServerOutputSpecification(getJsonSchema(Map.of("client_id", Map.of("type", "integer"))))
+        .withCompleteOauthOutputSpecification(getJsonSchema(Map.of("refresh_token", Map.of("type", "integer"))));
+  }
+
   @Test
-  public void testGetDefaultOutputPath() {
+  void testGetDefaultOutputPath() {
     assertEquals(getExpectedOutputPath(), oauthFlow.getDefaultOAuthOutputPath());
   }
 
   @Test
-  public void testValidateInputOAuthConfigurationFailure() {
+  void testValidateInputOAuthConfigurationFailure() {
     final JsonNode invalidInputOAuthConfiguration = Jsons.jsonNode(Map.of("UnexpectedRandomField", 42));
     assertThrows(JsonValidationException.class,
         () -> oauthFlow.getSourceConsentUrl(workspaceId, definitionId, REDIRECT_URL, invalidInputOAuthConfiguration, getoAuthConfigSpecification()));
@@ -216,7 +228,7 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testGetConsentUrlEmptyOAuthParameters() throws JsonValidationException, IOException {
+  void testGetConsentUrlEmptyOAuthParameters() throws JsonValidationException, IOException {
     when(configRepository.listSourceOAuthParam()).thenReturn(List.of());
     when(configRepository.listDestinationOAuthParam()).thenReturn(List.of());
     assertThrows(ConfigNotFoundException.class,
@@ -227,7 +239,7 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testGetConsentUrlIncompleteOAuthParameters() throws IOException, JsonValidationException {
+  void testGetConsentUrlIncompleteOAuthParameters() throws IOException, JsonValidationException {
     when(configRepository.listSourceOAuthParam()).thenReturn(List.of(new SourceOAuthParameter()
         .withOauthParameterId(UUID.randomUUID())
         .withSourceDefinitionId(definitionId)
@@ -246,7 +258,7 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testGetSourceConsentUrlEmptyOAuthSpec() throws IOException, ConfigNotFoundException, JsonValidationException {
+  void testGetSourceConsentUrlEmptyOAuthSpec() throws IOException, ConfigNotFoundException, JsonValidationException {
     if (hasDependencyOnConnectorConfigValues()) {
       assertThrows(IOException.class, () -> oauthFlow.getSourceConsentUrl(workspaceId, definitionId, REDIRECT_URL, Jsons.emptyObject(), null),
           "OAuth Flow Implementations with dependencies on connector config can't be supported without OAuthConfigSpecifications");
@@ -257,7 +269,7 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testGetDestinationConsentUrlEmptyOAuthSpec() throws IOException, ConfigNotFoundException, JsonValidationException {
+  void testGetDestinationConsentUrlEmptyOAuthSpec() throws IOException, ConfigNotFoundException, JsonValidationException {
     if (hasDependencyOnConnectorConfigValues()) {
       assertThrows(IOException.class, () -> oauthFlow.getDestinationConsentUrl(workspaceId, definitionId, REDIRECT_URL, Jsons.emptyObject(), null),
           "OAuth Flow Implementations with dependencies on connector config can't be supported without OAuthConfigSpecifications");
@@ -268,27 +280,27 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testGetSourceConsentUrl() throws IOException, ConfigNotFoundException, JsonValidationException {
+  void testGetSourceConsentUrl() throws IOException, ConfigNotFoundException, JsonValidationException {
     final String consentUrl =
         oauthFlow.getSourceConsentUrl(workspaceId, definitionId, REDIRECT_URL, getInputOAuthConfiguration(), getoAuthConfigSpecification());
     assertEquals(getExpectedConsentUrl(), consentUrl);
   }
 
   @Test
-  public void testGetDestinationConsentUrl() throws IOException, ConfigNotFoundException, JsonValidationException {
+  void testGetDestinationConsentUrl() throws IOException, ConfigNotFoundException, JsonValidationException {
     final String consentUrl =
         oauthFlow.getDestinationConsentUrl(workspaceId, definitionId, REDIRECT_URL, getInputOAuthConfiguration(), getoAuthConfigSpecification());
     assertEquals(getExpectedConsentUrl(), consentUrl);
   }
 
   @Test
-  public void testCompleteOAuthMissingCode() {
+  void testCompleteOAuthMissingCode() {
     final Map<String, Object> queryParams = Map.of();
     assertThrows(IOException.class, () -> oauthFlow.completeSourceOAuth(workspaceId, definitionId, queryParams, REDIRECT_URL));
   }
 
   @Test
-  public void testDeprecatedCompleteSourceOAuth() throws IOException, InterruptedException, ConfigNotFoundException {
+  void testDeprecatedCompleteSourceOAuth() throws IOException, InterruptedException, ConfigNotFoundException {
     final Map<String, String> returnedCredentials = getExpectedOutput();
     final HttpResponse response = mock(HttpResponse.class);
     when(response.body()).thenReturn(Jsons.serialize(returnedCredentials));
@@ -313,7 +325,7 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testDeprecatedCompleteDestinationOAuth() throws IOException, ConfigNotFoundException, InterruptedException {
+  void testDeprecatedCompleteDestinationOAuth() throws IOException, ConfigNotFoundException, InterruptedException {
     final Map<String, String> returnedCredentials = getExpectedOutput();
     final HttpResponse response = mock(HttpResponse.class);
     when(response.body()).thenReturn(Jsons.serialize(returnedCredentials));
@@ -338,10 +350,9 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testEmptyOutputCompleteSourceOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
-    final Map<String, String> returnedCredentials = getExpectedOutput();
+  void testEmptyOutputCompleteSourceOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
     final HttpResponse response = mock(HttpResponse.class);
-    when(response.body()).thenReturn(Jsons.serialize(returnedCredentials));
+    when(response.body()).thenReturn(getMockedResponse());
     when(httpClient.send(any(), any())).thenReturn(response);
     final Map<String, Object> queryParams = Map.of("code", "test_code");
     final Map<String, Object> actualQueryParams = oauthFlow.completeSourceOAuth(workspaceId, definitionId, queryParams, REDIRECT_URL,
@@ -351,10 +362,9 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testEmptyOutputCompleteDestinationOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
-    final Map<String, String> returnedCredentials = getExpectedOutput();
+  void testEmptyOutputCompleteDestinationOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
     final HttpResponse response = mock(HttpResponse.class);
-    when(response.body()).thenReturn(Jsons.serialize(returnedCredentials));
+    when(response.body()).thenReturn(getMockedResponse());
     when(httpClient.send(any(), any())).thenReturn(response);
     final Map<String, Object> queryParams = Map.of("code", "test_code");
     final Map<String, Object> actualQueryParams = oauthFlow.completeDestinationOAuth(workspaceId, definitionId, queryParams, REDIRECT_URL,
@@ -364,10 +374,9 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testEmptyInputCompleteSourceOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
-    final Map<String, String> returnedCredentials = getExpectedOutput();
+  void testEmptyInputCompleteSourceOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
     final HttpResponse response = mock(HttpResponse.class);
-    when(response.body()).thenReturn(Jsons.serialize(returnedCredentials));
+    when(response.body()).thenReturn(getMockedResponse());
     when(httpClient.send(any(), any())).thenReturn(response);
     final Map<String, Object> queryParams = Map.of("code", "test_code");
     final Map<String, Object> actualQueryParams = oauthFlow.completeSourceOAuth(workspaceId, definitionId, queryParams, REDIRECT_URL,
@@ -379,10 +388,9 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testEmptyInputCompleteDestinationOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
-    final Map<String, String> returnedCredentials = getExpectedOutput();
+  void testEmptyInputCompleteDestinationOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
     final HttpResponse response = mock(HttpResponse.class);
-    when(response.body()).thenReturn(Jsons.serialize(returnedCredentials));
+    when(response.body()).thenReturn(getMockedResponse());
     when(httpClient.send(any(), any())).thenReturn(response);
     final Map<String, Object> queryParams = Map.of("code", "test_code");
     final Map<String, Object> actualQueryParams = oauthFlow.completeDestinationOAuth(workspaceId, definitionId, queryParams, REDIRECT_URL,
@@ -394,10 +402,9 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testCompleteSourceOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
-    final Map<String, String> returnedCredentials = getExpectedOutput();
+  void testCompleteSourceOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
     final HttpResponse response = mock(HttpResponse.class);
-    when(response.body()).thenReturn(Jsons.serialize(returnedCredentials));
+    when(response.body()).thenReturn(getMockedResponse());
     when(httpClient.send(any(), any())).thenReturn(response);
     final Map<String, Object> queryParams = Map.of("code", "test_code");
     final Map<String, Object> actualQueryParams = oauthFlow.completeSourceOAuth(workspaceId, definitionId, queryParams, REDIRECT_URL,
@@ -409,10 +416,9 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testCompleteDestinationOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
-    final Map<String, String> returnedCredentials = getExpectedOutput();
+  void testCompleteDestinationOAuth() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
     final HttpResponse response = mock(HttpResponse.class);
-    when(response.body()).thenReturn(Jsons.serialize(returnedCredentials));
+    when(response.body()).thenReturn(getMockedResponse());
     when(httpClient.send(any(), any())).thenReturn(response);
     final Map<String, Object> queryParams = Map.of("code", "test_code");
     final Map<String, Object> actualQueryParams = oauthFlow.completeDestinationOAuth(workspaceId, definitionId, queryParams, REDIRECT_URL,
@@ -424,16 +430,12 @@ public abstract class BaseOAuthFlowTest {
   }
 
   @Test
-  public void testValidateOAuthOutputFailure() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
-    final Map<String, String> returnedCredentials = getExpectedOutput();
+  void testValidateOAuthOutputFailure() throws IOException, InterruptedException, ConfigNotFoundException, JsonValidationException {
     final HttpResponse response = mock(HttpResponse.class);
-    when(response.body()).thenReturn(Jsons.serialize(returnedCredentials));
+    when(response.body()).thenReturn(getMockedResponse());
     when(httpClient.send(any(), any())).thenReturn(response);
     final Map<String, Object> queryParams = Map.of("code", "test_code");
-    final OAuthConfigSpecification oAuthConfigSpecification = getoAuthConfigSpecification()
-        // change property types to induce json validation errors.
-        .withCompleteOauthServerOutputSpecification(getJsonSchema(Map.of("client_id", Map.of("type", "integer"))))
-        .withCompleteOauthOutputSpecification(getJsonSchema(Map.of("refresh_token", Map.of("type", "integer"))));
+    final OAuthConfigSpecification oAuthConfigSpecification = getOAuthConfigSpecification();
     assertThrows(JsonValidationException.class, () -> oauthFlow.completeSourceOAuth(workspaceId, definitionId, queryParams, REDIRECT_URL,
         getInputOAuthConfiguration(), oAuthConfigSpecification));
     assertThrows(JsonValidationException.class, () -> oauthFlow.completeDestinationOAuth(workspaceId, definitionId, queryParams, REDIRECT_URL,

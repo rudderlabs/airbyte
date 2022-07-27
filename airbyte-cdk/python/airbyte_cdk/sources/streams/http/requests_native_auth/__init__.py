@@ -1,11 +1,12 @@
 #
-# Copyright (c) 2021 Airbyte, Inc., all rights reserved.
+# Copyright (c) 2022 Airbyte, Inc., all rights reserved.
 #
 
 from .oauth import Oauth2Authenticator
-from .token import MultipleTokenAuthenticator, TokenAuthenticator
+from .token import BasicHttpAuthenticator, MultipleTokenAuthenticator, TokenAuthenticator
 
 __all__ = [
+    "BasicHttpAuthenticator",
     "Oauth2Authenticator",
     "TokenAuthenticator",
     "MultipleTokenAuthenticator",
