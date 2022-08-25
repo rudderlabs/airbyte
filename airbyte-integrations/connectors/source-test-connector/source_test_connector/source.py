@@ -3,6 +3,7 @@
 #
 
 
+from cmath import log
 import sys
 import json
 import time
@@ -16,9 +17,11 @@ from airbyte_cdk.models import (
     AirbyteMessage,
     AirbyteRecordMessage,
     AirbyteStream,
+    AirbyteLogMessage,
     ConfiguredAirbyteCatalog,
     Status,
     Type,
+    Level
 )
 from airbyte_cdk.sources import Source
 catalog = {
@@ -132,8 +135,12 @@ class SourceTestConnector(Source):
         time.sleep(initDelay)
         for i in range(resourcesNumber):
             for y in range(recordsPerResource):
-                if ((y % extractRate == 0)):
-                    time.sleep(1)
+                if ((y % 100 == 0)):
+                    yield AirbyteMessage(
+                        type=Type.LOG,
+                        log=AirbyteLogMessage(level=Level.INFO, message="Extracting record " + str(y), emitted_at=int(
+                            datetime.now().timestamp()) * 1000),
+                    )
                 # throw error after the half data in the first resource
                 if((round(recordsPerResource/2) == y) & throwError == True):
                     raise Exception("Expected Error")
