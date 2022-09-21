@@ -147,6 +147,8 @@ UNSUPPORTED_BULK_API_SALESFORCE_OBJECTS = [
     "TaskStatus",
     "TaskWhoRelation",
     "UndecidedEventRelation",
+    "WorkOrderLineItemStatus",
+    "WorkOrderStatus"
 ]
 
 UNSUPPORTED_FILTERING_STREAMS = [
