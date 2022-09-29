@@ -295,3 +295,52 @@ class SearchAnalyticsByQuery(SearchAnalytics):
 
 class SearchAnalyticsAllFields(SearchAnalytics):
     dimensions = ["date", "country", "device", "page", "query"]
+
+
+class SearchAnalyticsByCustomDimensions(SearchAnalytics):
+    def __init__(self, dimensions: List[str], *args, **kwargs):
+        super(SearchAnalyticsByCustomDimensions, self).__init__(*args, **kwargs)
+        self.dimensions = dimensions
+
+    @property
+    def cursor_field(self) -> Union[str, List[str]]:
+        return super().cursor_field if "date" in self.dimensions else []
+
+    def get_json_schema(self) -> Mapping[str, Any]:
+        try:
+            return super(SearchAnalyticsByCustomDimensions, self).get_json_schema()
+        except IOError:
+            schema: Mapping[str, Any] = {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "type": ["null", "object"],
+                "additionalProperties": True,
+                "properties": {
+                    "clicks": {"type": ["null", "integer"]},
+                    "ctr": {"type": ["null", "number"], "multipleOf": 1e-25},
+                    "date": {"type": ["null", "string"], "format": "date"},
+                    "impressions": {"type": ["null", "integer"]},
+                    "position": {"type": ["null", "number"], "multipleOf": 1e-25},
+                    "search_type": {"type": ["null", "string"]},
+                    "site_url": {"type": ["null", "string"]},
+                },
+            }
+
+            dimension_properties = self.dimension_to_property_schema()
+            schema["properties"].update(dimension_properties)
+
+            return schema
+
+    def dimension_to_property_schema(self) -> dict:
+        dimension_to_property_schema_map = {
+            "country": [{"country": {"type": ["null", "string"]}}],
+            "date": [],
+            "device": [{"device": {"type": ["null", "string"]}}],
+            "page": [{"page": {"type": ["null", "string"]}}],
+            "query": [{"query": {"type": ["null", "string"]}}],
+        }
+        properties = {}
+        for dimension in sorted(self.dimensions):
+            fields = dimension_to_property_schema_map[dimension]
+            for field in fields:
+                properties = {**properties, **field}
+        return properties
