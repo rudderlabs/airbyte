@@ -46,7 +46,7 @@ class StripeStream(HttpStream, ABC):
 
         # Stripe default pagination is 10, max is 100
         params = {"limit": 100}
-        for key in ("created[gte]", "created[lte]"):
+        for key in ("created[gt]", "created[lt]"):
             if key in stream_slice:
                 params[key] = stream_slice[key]
 
@@ -79,7 +79,7 @@ class StripeStream(HttpStream, ABC):
         self, *, sync_mode: SyncMode, cursor_field: List[str] = None, stream_state: Mapping[str, Any] = None
     ) -> Iterable[Optional[Mapping[str, Any]]]:
         for start, end in self.chunk_dates(self.start_date):
-            yield {"created[gte]": start, "created[lte]": end}
+            yield {"created[gt]": start, "created[lt]": end}
 
     def read_records(
         self,
@@ -146,7 +146,7 @@ class IncrementalStripeStream(StripeStream, ABC):
             yield None
         else:
             for start, end in self.chunk_dates(start_ts):
-                yield {"created[gte]": start, "created[lte]": end}
+                yield {"created[gt]": start, "created[lt]": end}
 
     def get_start_timestamp(self, stream_state) -> int:
         start_point = self.start_date
@@ -159,12 +159,86 @@ class IncrementalStripeStream(StripeStream, ABC):
 
         return start_point
 
+class IncrementalStripeStreamWithUpdates(IncrementalStripeStream):
+    """
+        This is a base class for incremental streams that support updates using the events API
+        In first sync it will not get any updates as the records are already updated
+        After first sync it will get all updates for the last 30 days starting from the first sync date
+        and then it will use the date of the last event as state
+    """
+    event_types = None
+    update_field = "event_created"
 
-class Customers(IncrementalStripeStream):
+    def read_records(self,stream_slice, stream_state, **kwargs) -> Iterable[Mapping[str, Any]]:
+        # Get the records 
+        newRecordsIDList =[]
+        # If this is not the first sync also get the updates
+        if stream_state.get(self.cursor_field) is not None: 
+            for record in super().read_records(stream_slice=stream_slice, stream_state=stream_state, **kwargs):
+                newRecordsIDList.append(record[self.get_record_id_key(record)])
+                yield record
+            yield from self.get_updates(stream_state, newRecordsIDList, **kwargs)
+        else:
+            yield from super().read_records(stream_slice=stream_slice, stream_state=stream_state, **kwargs)
+    def get_updates(self, stream_state, newRecords, **kwargs)-> Iterable[Mapping[str, Any]]:
+        # Use updatedRecords to store the latest update for each record
+        updatedRecords: MutableMapping[str, Any] = {}
+        update_stream = Updates(event_types=self.event_types, authenticator=self.authenticator, account_id=self.account_id, start_date=self.start_date)
+        slice = update_stream.stream_slices(sync_mode="incremental", stream_state=stream_state)
+        for _slice in slice:
+            for event in update_stream.read_records(stream_slice=_slice,stream_state=stream_state, **kwargs):
+                self.set_record_id(event)
+                recordId = event[self.get_record_id_key(event)]
+                # Skip updates for new records
+                if recordId in newRecords:
+                    continue
+                if updatedRecords.get(recordId) is None:
+                    updatedRecords[recordId] = event 
+                # If the event is newer than the one we have in updatedRecords
+                # replace it with the new one
+                elif updatedRecords.get(recordId)[self.update_field] < event[self.update_field]:
+                    updatedRecords[recordId].update(event)
+            # finally yield the updated records
+            yield from updatedRecords.values()
+
+    def get_record_id_key(self, record):
+        """
+         Returns the key of the record id (i.e. subscription_id)
+        """
+        # Object in the response contains the type of the record ie. subscription
+        return record["object"] + "_" + self.primary_key
+
+    def set_record_id(self, record):
+        """
+         Sets the primary_key of the record to a new field (i.e. {subscription_id: "..."}) and replace
+         the actual id with a unique value
+        """
+        record[self.get_record_id_key(record)] = record[self.primary_key]
+        record[self.primary_key] = record[self.primary_key] + "_" + str(record[self.update_field])
+
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        for item in super().parse_response(response, **kwargs):
+            if item.get(self.update_field) is None:
+                # set event_created as the cursor field value in case it is not set 
+                item[self.update_field] = item[self.cursor_field]
+                self.set_record_id(item)
+            yield item
+
+    def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Return the latest state by comparing the cursor value in the latest record with the stream's most recent state object
+        and returning an updated state object.
+        """
+        streamState = max(latest_record.get(self.cursor_field), current_stream_state.get(self.cursor_field, 0))
+        # We set the state for updates to current time
+        updateState = pendulum.now().int_timestamp
+        return { self.update_field:updateState, self.cursor_field: streamState }
+
+class Customers(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/customers/list
     """
-
+    event_types = ["customer.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs) -> str:
@@ -183,11 +257,11 @@ class BalanceTransactions(IncrementalStripeStream):
         return "balance_transactions"
 
 
-class Charges(IncrementalStripeStream):
+class Charges(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/charges/list
     """
-
+    event_types = ["charge.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs) -> str:
@@ -224,11 +298,11 @@ class Coupons(IncrementalStripeStream):
         return "coupons"
 
 
-class Disputes(IncrementalStripeStream):
+class Disputes(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/disputes/list
     """
-
+    event_types = ["charge.dispute.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
@@ -245,6 +319,33 @@ class Events(IncrementalStripeStream):
     def path(self, **kwargs):
         return "events"
 
+class Updates(Events):
+    """
+    A class for getting updated records using the event stream
+    """
+    cursor_field = "event_created"
+    def __init__(self, event_types=None, **kwargs):
+        super().__init__(**kwargs)
+        # event_types defines the types of the events that will be used to fetch the specified updated
+        # example: event_types = "subscription.updated" will be used for the Charges stream
+        if not event_types:
+            raise Exception("event_types is required for the Updates stream")
+        self.event_types = event_types
+
+    def request_params(self, stream_slice: Mapping[str, Any] = None, **kwargs):
+        params = super().request_params(stream_slice=stream_slice, **kwargs)
+        if self.event_types:
+            params["types[]"] = self.event_types
+        return params
+
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        for event in super().parse_response(response, **kwargs):
+            # The actual record exist in the data object
+            # example {"object": "event","data": {"object": {...} } }
+            eventData = event.get("data",{}).get("object",{})
+            # Add event_created field to the record using the created date of the event
+            eventData[self.cursor_field] = event.get("created")
+            yield eventData
 
 class StripeSubStream(SingleEmptySliceMixin, StripeStream, ABC):
     """
@@ -351,11 +452,11 @@ class StripeSubStream(SingleEmptySliceMixin, StripeStream, ABC):
                     yield item
 
 
-class Invoices(IncrementalStripeStream):
+class Invoices(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/invoices/list
     """
-
+    event_types = ["invoice.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
@@ -378,11 +479,11 @@ class InvoiceLineItems(StripeSubStream):
         return f"invoices/{stream_slice[self.parent_id]}/lines"
 
 
-class InvoiceItems(IncrementalStripeStream):
+class InvoiceItems(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/invoiceitems/list
     """
-
+    event_types = ["invoiceitem.updated"]
     cursor_field = "date"
     name = "invoice_items"
 
@@ -401,33 +502,34 @@ class Payouts(IncrementalStripeStream):
         return "payouts"
 
 
-class Plans(IncrementalStripeStream):
+class Plans(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/plans/list
     """
-
+    event_types = ["plan.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
         return "plans"
 
 
-class Products(IncrementalStripeStream):
+class Products(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/products/list
     """
 
+    event_types = ["product.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
         return "products"
 
 
-class Subscriptions(IncrementalStripeStream):
+class Subscriptions(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/subscriptions/list
     """
-
+    event_types = ["customer.subscription.updated"]
     cursor_field = "created"
     status = "all"
 
@@ -461,11 +563,11 @@ class SubscriptionItems(StripeSubStream):
         return params
 
 
-class Transfers(IncrementalStripeStream):
+class Transfers(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/transfers/list
     """
-
+    event_types = ["transfer.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
