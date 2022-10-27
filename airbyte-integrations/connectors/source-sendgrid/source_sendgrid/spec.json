@@ -4,8 +4,8 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "Sendgrid Spec",
     "type": "object",
-    "required": ["apikey"],
-    "additionalProperties": false,
+    "required": ["apikey", "start_time"],
+    "additionalProperties": true,
     "properties": {
       "apikey": {
         "title": "Sendgrid API key",
