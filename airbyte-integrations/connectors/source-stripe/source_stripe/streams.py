@@ -163,17 +163,15 @@ class IncrementalStripeStreamWithUpdates(IncrementalStripeStream):
     """
         This is a base class for incremental streams that support updates using the events API
         In first sync it will not get any updates as the records are already updated
-        After first sync it will get all updates for the last 30 days starting from the first sync date
-        and then it will use the date of the last event as state
+        After first sync it will get all updates starting from date of the last sync
     """
     event_types = None
     update_field = "event_created"
 
     def read_records(self,stream_slice, stream_state, **kwargs) -> Iterable[Mapping[str, Any]]:
-        # Get the records 
-        newRecordsIDList =[]
         # If this is not the first sync also get the updates
         if stream_state.get(self.cursor_field) is not None: 
+            newRecordsIDList =[]
             for record in super().read_records(stream_slice=stream_slice, stream_state=stream_state, **kwargs):
                 newRecordsIDList.append(record[self.get_record_id_key(record)])
                 yield record
@@ -192,7 +190,7 @@ class IncrementalStripeStreamWithUpdates(IncrementalStripeStream):
                 # Skip updates for new records
                 if recordId in newRecords:
                     continue
-                if updatedRecords.get(recordId) is None:
+                if recordId not in updatedRecords:
                     updatedRecords[recordId] = event 
                 # If the event is newer than the one we have in updatedRecords
                 # replace it with the new one
