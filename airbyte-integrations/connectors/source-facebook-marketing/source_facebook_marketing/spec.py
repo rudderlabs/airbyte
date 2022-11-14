@@ -48,6 +48,7 @@ class InsightConfig(BaseModel):
 
     time_increment: Optional[PositiveInt] = Field(
         title="Time Increment",
+        description="The field is a time interval in days to calucate statistics. We will split the sync into N-days time frames, where N is the number of defined in this field.",
         exclusiveMaximum=90,
         default=1,
     )
@@ -60,11 +61,13 @@ class InsightConfig(BaseModel):
 
     end_date: Optional[datetime] = Field(
         title="End Date",
+        description="The field is the date until which to pull data. If not specified,  we will use the latest data available.",
         pattern=DATE_TIME_PATTERN,
         examples=["2017-01-26T00:00:00Z"],
     )
     insights_lookback_window: Optional[PositiveInt] = Field(
         title="Custom Insights Lookback Window",
+        description="The attribution window",
         maximum=28,
         mininum=1,
         default=28,
@@ -96,6 +99,7 @@ class ConnectorConfig(BaseConfig):
 
     end_date: Optional[datetime] = Field(
         title="End Date",
+        description="The field is the date until which to pull data. If not specified,  we will use the latest data available.",
         order=2,
         pattern=EMPTY_PATTERN + "|" + DATE_TIME_PATTERN,
         examples=["2017-01-26T00:00:00Z"],
