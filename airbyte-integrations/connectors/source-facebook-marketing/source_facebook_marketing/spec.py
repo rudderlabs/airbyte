@@ -61,7 +61,7 @@ class InsightConfig(BaseModel):
 
     end_date: Optional[datetime] = Field(
         title="End Date",
-        description="The field is the date until which to pull data. If not specified,  we will use the latest data available.",
+        description="The field is the date until which to pull data. If not specified, we will use the latest data available.",
         pattern=DATE_TIME_PATTERN,
         examples=["2017-01-26T00:00:00Z"],
     )
