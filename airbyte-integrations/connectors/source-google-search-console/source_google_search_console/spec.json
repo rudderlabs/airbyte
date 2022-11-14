@@ -105,7 +105,7 @@
       "custom_reports": {
         "order": 4,
         "type": "string",
-        "title": "Custom Reports (Optional)"
+        "title": "Custom Reports"
       }
     }
   },
