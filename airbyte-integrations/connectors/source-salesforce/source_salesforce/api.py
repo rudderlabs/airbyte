@@ -152,7 +152,8 @@ UNSUPPORTED_BULK_API_SALESFORCE_OBJECTS = [
     "UndecidedEventRelation",
     "WorkOrderLineItemStatus",
     "WorkOrderStatus",
-    "TaskWhoRelation"
+    "TaskWhoRelation",
+    "EventWhoRelation",
 ]
 
 UNSUPPORTED_FILTERING_STREAMS = [
