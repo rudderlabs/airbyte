@@ -241,11 +241,14 @@ class Salesforce:
         3) selection by catalog settings
         """
         stream_objects = {}
+        non_queryable_streams = list()
         for stream_object in self.describe()["sobjects"]:
             if stream_object["queryable"]:
                 stream_objects[stream_object.pop("name")] = stream_object
             else:
-                self.logger.warn(f"Stream {stream_object['name']} is not queryable and will be ignored.")
+                non_queryable_streams.append(stream_object['name'])
+        
+        self.logger.warn(f"Streams {non_queryable_streams} are not queryable and will be ignored.")
 
         if catalog:
             return {
