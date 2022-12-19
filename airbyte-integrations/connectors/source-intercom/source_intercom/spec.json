@@ -5,7 +5,7 @@
     "title": "Source Intercom Spec",
     "type": "object",
     "required": ["start_date", "access_token"],
-    "additionalProperties": true,
+    "additionalProperties": false,
     "properties": {
       "start_date": {
         "type": "string",
@@ -20,14 +20,6 @@
         "description": "Access Token for making authenticated requests.",
         "airbyte_secret": true
       }
-    }
-  },
-  "authSpecification": {
-    "auth_type": "oauth2.0",
-    "oauth2Specification": {
-      "rootObject": [],
-      "oauthFlowInitParameters": [],
-      "oauthFlowOutputParameters": [["access_token"]]
     }
   }
 }
