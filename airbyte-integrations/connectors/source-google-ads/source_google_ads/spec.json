@@ -89,7 +89,7 @@
             "query": {
               "type": "string",
               "title": "Custom Query",
-              "description": "A custom defined GAQL query for fetchinh the report. Should not contain segments.date",
+              "description": "A custom defined GAQL query for fetching the report. Should not contain segments.date",
               "examples": [
                 "SELECT segments.ad_destination_type, campaign.advertising_channel_sub_type FROM campaign WHERE campaign.status = 'PAUSED'"
               ]
