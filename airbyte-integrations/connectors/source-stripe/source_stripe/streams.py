@@ -11,6 +11,8 @@ import pendulum
 import requests
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams.http import HttpStream
+from airbyte_cdk.sources.streams import IncrementalMixin
+from datetime import datetime
 
 STRIPE_ERROR_CODES: List = [
     # stream requires additional permissions
@@ -135,6 +137,7 @@ class IncrementalStripeStream(StripeStream, ABC):
         Return the latest state by comparing the cursor value in the latest record with the stream's most recent state object
         and returning an updated state object.
         """
+       
         return {self.cursor_field: max(latest_record.get(self.cursor_field), current_stream_state.get(self.cursor_field, 0))}
 
     def stream_slices(
@@ -167,42 +170,57 @@ class IncrementalStripeStreamWithUpdates(IncrementalStripeStream):
     """
     event_types = None
     update_field = "event_created"
-
-    def read_records(self,stream_slice, stream_state, **kwargs) -> Iterable[Mapping[str, Any]]:
-        # If this is not the first sync also get the updates
-        if stream_state.get(self.cursor_field) is not None: 
-            newRecordsIDList: MutableMapping[str, Any] = {}
-            for record in super().read_records(stream_slice=stream_slice, stream_state=stream_state, **kwargs):
-                recordID = record[self.get_record_id_key(record)]
-                # Keep the recordId and timestamp to ensure that we have the latest record
-                newRecordsIDList[recordID] = pendulum.now().int_timestamp
-                yield record
-            yield from self.get_updates(stream_state, newRecordsIDList, **kwargs)
+    state_lastSync_key = "lastSync"
+    state_completed_key = "completed"
+    completed = False
+    def lookahead(self, iterable):
+        """Pass through all values from the given iterable, to check
+        if there are more values to come after the current one,
+        or if it is the last value. Helps to define in the last state the completed flag. 
+        """
+        # Get an iterator and pull the first value.
+        it = iter(iterable)
+        last = next(it)
+        # Run the iterator to exhaustion (starting from the second value).
+        for val in it:
+            yield last
+            last = val
+        self.completed = True
+        yield last
+    def read_records(self, stream_slice, stream_state, **kwargs) -> Iterable[Mapping[str, Any]]:
+        durationInDaysFromLastSync = 0
+        hasState = bool(stream_state)
+        self.completed = stream_state.get(self.state_completed_key) or False
+        if hasState and self.completed:
+            then = datetime.fromtimestamp(stream_state.get(self.state_lastSync_key)) 
+            now  = datetime.utcnow()
+            duration = now - then
+            durationInDaysFromLastSync = duration.days
+        # If last state is not present or the main sync didn't complete or the last sync was more than 30 days ago
+        # Fetch data from original stream else fetch data from events
+        shouldResetState = durationInDaysFromLastSync > 30
+        state = stream_state
+        if hasState == False or self.completed is False or shouldResetState:
+            # Set completed 
+            self.completed = False
+            yield from self.lookahead(super().read_records(stream_slice=stream_slice, stream_state={}, **kwargs))
         else:
-            yield from super().read_records(stream_slice=stream_slice, stream_state=stream_state, **kwargs)
-    def get_updates(self, stream_state, newRecords, **kwargs)-> Iterable[Mapping[str, Any]]:
+            yield from self.get_updates(state, **kwargs)
+
+    def get_updates(self, stream_state, **kwargs)-> Iterable[Mapping[str, Any]]:
         update_stream = Updates(event_types=self.event_types, authenticator=self.authenticator, account_id=self.account_id, start_date=self.start_date)
         slice = update_stream.stream_slices(sync_mode="incremental", stream_state=stream_state)
         for _slice in slice:
             for event in update_stream.read_records(stream_slice=_slice,stream_state=stream_state, **kwargs):
                 self.set_record_id(event)
-                recordId = event[self.get_record_id_key(event)]
-                # send updates for new records or for updates that are more recent than the record 
-                if recordId not in newRecords or newRecords[recordId] < event[self.update_field]:
-                    yield event
-
-    def get_record_id_key(self, record):
-        """
-         Returns the key of the record id.
-        """
-        return "record_id"
+                yield event
 
     def set_record_id(self, record):
         """
          Sets the primary_key of the record to a new field (i.e. {subscription_id: "..."}) and replace
          the actual id with a unique value
         """
-        record[self.get_record_id_key(record)] = record[self.primary_key]
+        record["record_id"] = record[self.primary_key]
         # Delete the original id because is reserved by warehouse and if it is present it gets used for deduplication
         del record[self.primary_key]
 
@@ -221,14 +239,21 @@ class IncrementalStripeStreamWithUpdates(IncrementalStripeStream):
         """
         streamState = max(latest_record.get(self.cursor_field), current_stream_state.get(self.cursor_field, 0))
         # We set the state for updates to current time
-        updateState = pendulum.now().int_timestamp
-        return { self.update_field:updateState, self.cursor_field: streamState }
+        lastSyncAt = pendulum.now().int_timestamp
+        if self.completed:
+            # If the main sync is completed we use the event created to store events state
+            updateState = max(latest_record.get(self.update_field), current_stream_state.get(self.update_field, 0))
+        else:
+            # If the main sync is not completed we get events from the beginning to ensure no data loss
+            updateState = 0
+        latestState  = { self.update_field:updateState, self.cursor_field: streamState, self.state_completed_key: self.completed, self.state_lastSync_key:lastSyncAt }
+        return latestState
 
 class Customers(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/customers/list
     """
-    event_types = ["customer.updated"]
+    event_types = ["customer.created", "customer.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs) -> str:
@@ -251,7 +276,7 @@ class Charges(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/charges/list
     """
-    event_types = ["charge.updated"]
+    event_types = ["charge.updated","charge.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs) -> str:
@@ -292,7 +317,7 @@ class Disputes(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/disputes/list
     """
-    event_types = ["charge.dispute.updated"]
+    event_types = ["charge.dispute.updated", "charge.dispute.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
@@ -446,7 +471,7 @@ class Invoices(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/invoices/list
     """
-    event_types = ["invoice.updated"]
+    event_types = ["invoice.updated", "invoice.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
@@ -473,7 +498,7 @@ class InvoiceItems(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/invoiceitems/list
     """
-    event_types = ["invoiceitem.updated"]
+    event_types = ["invoiceitem.created", "invoiceitem.updated"]
     cursor_field = "date"
     name = "invoice_items"
 
@@ -496,7 +521,7 @@ class Plans(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/plans/list
     """
-    event_types = ["plan.updated"]
+    event_types = ["plan.created", "plan.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
@@ -508,7 +533,7 @@ class Products(IncrementalStripeStreamWithUpdates):
     API docs: https://stripe.com/docs/api/products/list
     """
 
-    event_types = ["product.updated"]
+    event_types = ["product.created", "product.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
@@ -519,7 +544,7 @@ class Subscriptions(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/subscriptions/list
     """
-    event_types = ["customer.subscription.updated"]
+    event_types = ["customer.subscription.created", "customer.subscription.updated"]
     cursor_field = "created"
     status = "all"
 
@@ -557,7 +582,7 @@ class Transfers(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/transfers/list
     """
-    event_types = ["transfer.updated"]
+    event_types = ["transfer.created", "transfer.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
