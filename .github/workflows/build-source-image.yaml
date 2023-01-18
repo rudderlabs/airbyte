@@ -252,7 +252,7 @@ jobs:
         with:
           version: ${{ github.event.inputs.basetag || steps.previoustag.outputs.tag }}
       
-      - name: Print Next Version according to change_type
+      - name: Generate Next Version according to change_type
         id: printnextversion
         run: |
           if [ "${{ github.event.inputs.change_type }}" = "minor" ]; then 
@@ -260,7 +260,9 @@ jobs:
           else
             nextversion=${{ steps.nextversion.outputs.v_patch }}  
           fi;
-          echo $nextversion
+          source_branch_name=${GITHUB_REF##*/}
+          echo $source_branch_name
+          echo "::set-output name=next_version::$nextversion"
 
 
 
