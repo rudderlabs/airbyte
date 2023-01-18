@@ -247,7 +247,7 @@ jobs:
         run: echo  The tags are ${{ github.event.inputs.basetag || steps.previoustag.outputs.tag }} 
       
       - name: Get Next Version
-        id: major
+        id: nextversion
         uses: "WyriHaximus/github-action-next-semvers@v1"
         with:
           version: ${{ github.event.inputs.basetag || steps.previoustag.outputs.tag }}
@@ -255,10 +255,10 @@ jobs:
       - name: Print Next Version according to change_type
         id: printnextversion
         run: |
-          if [ {{ github.event.inputs.change_type }} -eq "minor" ]; then 
-            nextversion={{ steps.previoustag.outputs.v_minor }}  
+          if [ "{{ github.event.inputs.change_type }}" = "minor" ]; then 
+            nextversion={{ steps.nextversion.outputs.v_minor }}  
           else
-            nextversion={{ steps.previoustag.outputs.v_patch }}  
+            nextversion={{ steps.nextversion.outputs.v_patch }}  
           fi;
           echo $nextversion
 
