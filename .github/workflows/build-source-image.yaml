@@ -231,6 +231,12 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+    
       - name: Check out repository code
         uses: actions/checkout@v3
         with:
@@ -253,7 +259,7 @@ jobs:
           version: ${{ github.event.inputs.basetag || steps.previoustag.outputs.tag }}
       
       - name: Generate Next Version according to change_type
-        id: printnextversion
+        id: version
         run: |
           if [ "${{ github.event.inputs.change_type }}" = "minor" ]; then 
             nextversion=${{ steps.nextversion.outputs.v_minor }}  
@@ -261,8 +267,26 @@ jobs:
             nextversion=${{ steps.nextversion.outputs.v_patch }}  
           fi;
           source_branch_name=${GITHUB_REF##*/}
-          echo $source_branch_name
+
+          # for dev branches, prefix "rc-"
+          if [ $source_branch_name = "main" ]; then nextversion="rc-"$nextversion fi;
+
           echo "::set-output name=next_version::$nextversion"
+      
+      - name: Publish version as a tag
+        run: |
+          git tag ${{ steps.version.outputs.next_version }}
+          git push --tag
+
+      - name: Build and Push 
+        uses: docker/build-push-action@v3
+        with:
+          context: ./airbyte-integrations/connectors/${{ github.event.inputs.connector }}
+          file: ./airbyte-integrations/connectors/${{ github.event.inputs.connector }}/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: rudderstack/${{ github.event.inputs.connector }}:${{ steps.version.outputs.next_version }}
+
 
 
 
