@@ -1,4 +1,4 @@
-name: Sample Workflow
+name: Build Source Container
 on:
   workflow_dispatch:
     inputs:
