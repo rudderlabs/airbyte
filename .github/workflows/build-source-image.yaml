@@ -255,9 +255,9 @@ jobs:
       - name: Print Next Version according to change_type
         id: printnextversion
         run: |
-          if [ {{ github.event.inputs.change_type }} -eq "minor" ] then 
+          if [ {{ github.event.inputs.change_type }} -eq "minor" ]; then 
             nextversion={{ steps.previoustag.outputs.v_minor }}  
-          else 
+          else
             nextversion={{ steps.previoustag.outputs.v_patch }}  
           fi;
           echo $nextversion
