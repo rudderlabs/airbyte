@@ -269,7 +269,9 @@ jobs:
           source_branch_name=${GITHUB_REF##*/}
 
           # for dev branches, prefix "rc-"
-          if [ $source_branch_name = "main" ]; then nextversion="rc-"$nextversion fi;
+          if [ $source_branch_name = "main" ]; then 
+            nextversion="rc-"$nextversion 
+          fi;
 
           echo "::set-output name=next_version::$nextversion"
       
