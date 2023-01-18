@@ -187,7 +187,7 @@ class IncrementalStripeStreamWithUpdates(IncrementalStripeStream):
             last = val
         self.completed = True
         yield last
-    def read_records(self, stream_slice, stream_state, **kwargs) -> Iterable[Mapping[str, Any]]:
+    def shouldFetchFromOriginalResource (self,stream_state):
         durationInDaysFromLastSync = 0
         hasState = bool(stream_state)
         self.completed = stream_state.get(self.state_completed_key) or False
@@ -199,13 +199,15 @@ class IncrementalStripeStreamWithUpdates(IncrementalStripeStream):
         # If last state is not present or the main sync didn't complete or the last sync was more than 30 days ago
         # Fetch data from original stream else fetch data from events
         shouldResetState = durationInDaysFromLastSync > 30
-        state = stream_state
-        if hasState == False or self.completed is False or shouldResetState:
+        return hasState == False or self.completed is False or shouldResetState
+    def read_records(self, stream_slice, stream_state, **kwargs) -> Iterable[Mapping[str, Any]]:
+        shouldFetchFromOriginalResource = self.shouldFetchFromOriginalResource(stream_state)
+        if shouldFetchFromOriginalResource:
             # Set completed 
             self.completed = False
             yield from self.lookahead(super().read_records(stream_slice=stream_slice, stream_state={}, **kwargs))
         else:
-            yield from self.get_updates(state, **kwargs)
+            yield from self.get_updates(stream_state, **kwargs)
 
     def get_updates(self, stream_state, **kwargs)-> Iterable[Mapping[str, Any]]:
         update_stream = Updates(event_types=self.event_types, authenticator=self.authenticator, account_id=self.account_id, start_date=self.start_date)
@@ -276,7 +278,7 @@ class Charges(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/charges/list
     """
-    event_types = ["charge.updated","charge.updated"]
+    event_types = ["charge.created","charge.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs) -> str:
@@ -317,7 +319,7 @@ class Disputes(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/disputes/list
     """
-    event_types = ["charge.dispute.updated", "charge.dispute.updated"]
+    event_types = ["charge.dispute.created", "charge.dispute.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
@@ -471,7 +473,7 @@ class Invoices(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/invoices/list
     """
-    event_types = ["invoice.updated", "invoice.updated"]
+    event_types = ["invoice.created", "invoice.updated"]
     cursor_field = "created"
 
     def path(self, **kwargs):
