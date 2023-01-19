@@ -271,7 +271,7 @@ jobs:
 
           # for dev branches, prefix "-alpha.<commit-hash>"
           if [ $source_branch_name != "main" ]; then 
-            nextversion=$nextversion"-alpha"$git_hash
+            nextversion=$nextversion"-alpha."$git_hash
           fi;
 
           echo "::set-output name=next_version::$nextversion"
