@@ -217,7 +217,7 @@ on:
         - source-zuora
 
       basetag:
-        description: 'If you want the versioning to be based on a different tag than the latest'
+        description: 'Custom tag if you want the versioning to be based on a different tag than the latest'
       
       change_type:
         description: 'Choose between minor and patch (Major will be changed during upstream sync)'
