@@ -248,10 +248,6 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       
-      - name: Print Tag
-        id: printtag
-        run: echo  The tags are ${{ github.event.inputs.basetag || steps.previoustag.outputs.tag }} 
-      
       - name: Get Next Version
         id: nextversion
         uses: "WyriHaximus/github-action-next-semvers@v1"
