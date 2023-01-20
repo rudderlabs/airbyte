@@ -198,7 +198,7 @@ class IncrementalStripeStreamWithUpdates(IncrementalStripeStream):
             durationInDaysFromLastSync = duration.days
         # If last state is not present or the main sync didn't complete or the last sync was more than 30 days ago
         # Fetch data from original stream else fetch data from events
-        shouldResetState = durationInDaysFromLastSync > 30
+        shouldResetState = durationInDaysFromLastSync >= 30
         return hasState == False or self.completed is False or shouldResetState
     def read_records(self, stream_slice, stream_state, **kwargs) -> Iterable[Mapping[str, Any]]:
         shouldFetchFromOriginalResource = self.shouldFetchFromOriginalResource(stream_state)
