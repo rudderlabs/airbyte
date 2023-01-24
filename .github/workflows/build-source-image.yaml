@@ -278,7 +278,7 @@ jobs:
           tag: ${{ steps.version.outputs.next_version }}
       
       - name: Publish version as a tag
-        if: ${{ steps.version.outputs.checkTag.exists != 'true' }}
+        if: ${{ steps.checkTag.outputs.exists != 'true' }}
         run: |
           git tag ${{ steps.version.outputs.next_version }}
           git push --tag
