@@ -216,8 +216,8 @@ on:
         - source-zoom
         - source-zuora
 
-      basetag:
-        description: 'Custom tag if you want the versioning to be based on a different tag than the latest'
+      customtag:
+        description: 'Custom tag (If entered, the image will be build using this tag)'
       
       change_type:
         description: 'Choose between minor and patch (Major will be changed during upstream sync)'
@@ -227,6 +227,15 @@ on:
         options:
         - minor
         - patch
+      
+      sort_by:
+        description: 'Latest by'
+        required: true 
+        type: choice 
+        default: "version"
+        options:
+        - date
+        - version
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -244,17 +253,22 @@ jobs:
       
       - name: Get previous tag
         id: previoustag
-        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        uses: "debanjan97/github-action-get-previous-tag@v1.0.0"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        with:
+          sort: ${{ github.event.inputs.change_type }}
+          stable: true
       
       - name: Get Next Version
+        if: ${{ github.event.inputs.customtag == '' }}
         id: nextversion
         uses: "WyriHaximus/github-action-next-semvers@v1"
         with:
-          version: ${{ github.event.inputs.basetag || steps.previoustag.outputs.tag }}
+          version: ${{ steps.previoustag.outputs.tag }}
       
       - name: Generate Next Version according to change_type
+        if: ${{ github.event.inputs.customtag == '' }}
         id: version
         run: |
           if [ "${{ github.event.inputs.change_type }}" = "minor" ]; then 
@@ -272,15 +286,22 @@ jobs:
 
           echo "next_version=$nextversion" >> $GITHUB_OUTPUT
       
+      - name: Get Build Tag
+        id: buildtag
+        run: |
+          tag=${{ github.event.inputs.customtag || steps.version.outputs.next_version }}
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+      
       - uses: mukunku/tag-exists-action@v1.2.0
+        name: Check if the generated tag exists
         id: checkTag
         with: 
-          tag: ${{ steps.version.outputs.next_version }}
+          tag: ${{ steps.buildtag.outputs.tag }}
       
       - name: Publish version as a tag
         if: ${{ steps.checkTag.outputs.exists != 'true' }}
         run: |
-          git tag ${{ steps.version.outputs.next_version }}
+          git tag ${{ steps.buildtag.outputs.tag }}
           git push --tag
 
       - name: Build and Push 
@@ -290,7 +311,7 @@ jobs:
           file: ./airbyte-integrations/connectors/${{ github.event.inputs.connector }}/Dockerfile
           push: true
           platforms: linux/amd64
-          tags: rudderstack/${{ github.event.inputs.connector }}:${{ steps.version.outputs.next_version }}
+          tags: rudderstack/${{ github.event.inputs.connector }}:${{ steps.buildtag.outputs.tag }}
 
 
 
