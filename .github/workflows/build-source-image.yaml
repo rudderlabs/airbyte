@@ -257,7 +257,7 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
-          sort: ${{ github.event.inputs.change_type }}
+          sort: ${{ github.event.inputs.sort_by }}
           stable: true
       
       - name: Get Next Version
