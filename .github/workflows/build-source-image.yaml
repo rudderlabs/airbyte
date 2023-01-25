@@ -252,6 +252,7 @@ jobs:
           fetch-depth: 0
       
       - name: Get previous tag
+        if: ${{ github.event.inputs.customtag == '' }}
         id: previoustag
         uses: "debanjan97/github-action-get-previous-tag@v1.0.0"
         env:
@@ -261,14 +262,14 @@ jobs:
           stable: true
       
       - name: Get Next Version
-        if: ${{ github.event.inputs.customtag == '' }}
+        if: ${{ github.event.inputs.customtag == '' && ${GITHUB_REF##*/} == "main" }}
         id: nextversion
         uses: "WyriHaximus/github-action-next-semvers@v1"
         with:
           version: ${{ steps.previoustag.outputs.tag }}
       
       - name: Generate Next Version according to change_type
-        if: ${{ github.event.inputs.customtag == '' }}
+        if: ${{ github.event.inputs.customtag == '' && ${GITHUB_REF##*/} == "main" }}
         id: version
         run: |
           if [ "${{ github.event.inputs.change_type }}" = "minor" ]; then 
