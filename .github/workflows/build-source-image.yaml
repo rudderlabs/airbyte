@@ -220,7 +220,7 @@ on:
         description: 'Custom tag (If entered, the image will be build using this tag)'
       
       change_type:
-        description: 'Choose between minor and patch (Major will be changed during upstream sync)'
+        description: 'Choose between minor and patch (only applicable when branch is `main`)'
         required: true 
         type: choice 
         default: "minor"
@@ -229,7 +229,7 @@ on:
         - patch
       
       sort_by:
-        description: 'Latest by'
+        description: 'Latest tag by'
         required: true 
         type: choice 
         default: "version"
