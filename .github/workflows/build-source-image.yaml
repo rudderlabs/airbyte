@@ -262,14 +262,14 @@ jobs:
           stable: true
       
       - name: Get Next Version
-        if: ${{ github.event.inputs.customtag == '' && ${GITHUB_REF##*/} == "main" }}
+        if: ${{ github.event.inputs.customtag == '' && github.ref_name == "main" }}
         id: nextversion
         uses: "WyriHaximus/github-action-next-semvers@v1"
         with:
           version: ${{ steps.previoustag.outputs.tag }}
       
       - name: Generate Next Version according to change_type
-        if: ${{ github.event.inputs.customtag == '' && ${GITHUB_REF##*/} == "main" }}
+        if: ${{ github.event.inputs.customtag == '' && github.ref_name == "main" }}
         id: version
         run: |
           if [ "${{ github.event.inputs.change_type }}" = "minor" ]; then 
