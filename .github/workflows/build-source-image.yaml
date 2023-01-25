@@ -220,13 +220,14 @@ on:
         description: 'Custom tag (If entered, the image will be build using this tag)'
       
       change_type:
-        description: 'Choose between minor and patch (only applicable when branch is "main")'
+        description: 'Change type (only applicable when image build from main, choose n/a for resuing latest tag)'
         required: true 
         type: choice 
         default: "minor"
         options:
         - minor
         - patch
+        - n/a
       
       sort_by:
         description: 'Latest tag by'
@@ -261,28 +262,33 @@ jobs:
           sort: ${{ github.event.inputs.sort_by }}
           stable: true # ignores alpha builds
       
-      - name: Check if main has new commits since the last tag
+      - name: Check if version bump is required
         if: ${{ github.ref_name == 'main' }}
-        id: maincheck
+        id: bump
         run: |
+          if [ "${{ github.event.inputs.change_type }}"="n/a" ]; then 
+            echo "change type is marked n/a, assuming no version bump is required"
+            echo "required=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi;
           last_commit=${git rev-list -n 1 ${{ steps.current_tag.outputs.tag }}}
           current_commit=${{ github.sha }}
           if [ $last_commit = $current_commit ]; then 
-            changed=false
+            required=false
           else
-            changed=true
+            required=true
           fi;
-          echo "changed=$changed" >> $GITHUB_OUTPUT
+          echo "required=$required" >> $GITHUB_OUTPUT
       
       - name: Calculate Next Versions
-        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' && steps.maincheck.outputs.status == 'true' }}
+        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' && steps.bump.outputs.required == 'true' }}
         id: calculatenextversion
         uses: "WyriHaximus/github-action-next-semvers@v1"
         with:
           version: ${{ steps.current_tag.outputs.tag }}
       
       - name: Generate New Version according to change_type
-        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' && steps.maincheck.outputs.status == 'true' }}
+        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' && steps.bump.outputs.required == 'true' }}
         id: newversion
         run: |
           if [ "${{ github.event.inputs.change_type }}" = "minor" ]; then 
@@ -304,8 +310,9 @@ jobs:
           
           source_branch_name="${GITHUB_REF##*/}"
           if [ $source_branch_name = "main" ]; then 
-            if [ "${{ steps.maincheck.outputs.status }}"="false" ]; then
+            if [ "${{ steps.bump.outputs.required }}"="false" ]; then
               # return current tag, if no new commits
+              echo "no version bump required, proceeding with current version"
               tag=${{ steps.current_tag.outputs.tag }}
             else
               tag=${{ steps.newversion.outputs.version }}
