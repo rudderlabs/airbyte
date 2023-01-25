@@ -266,11 +266,18 @@ jobs:
         if: ${{ github.ref_name == 'main' }}
         id: bump
         run: |
+          if [ "${{ github.event.inputs.customtag }}" != "" ]; then
+            # custom tag exists, no version bump required
+            echo "required=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi;
+            
           if [ "${{ github.event.inputs.change_type }}"="n/a" ]; then 
             echo "change type is marked n/a, assuming no version bump is required"
             echo "required=false" >> $GITHUB_OUTPUT
             exit 0
           fi;
+          
           last_commit=${git rev-list -n 1 ${{ steps.current_tag.outputs.tag }}}
           current_commit=${{ github.sha }}
           if [ $last_commit = $current_commit ]; then 
@@ -282,14 +289,14 @@ jobs:
           echo "required=$required" >> $GITHUB_OUTPUT
       
       - name: Calculate Next Versions
-        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' && steps.bump.outputs.required == 'true' }}
+        if: ${{ steps.bump.outputs.required == 'true' }}
         id: calculatenextversion
         uses: "WyriHaximus/github-action-next-semvers@v1"
         with:
           version: ${{ steps.current_tag.outputs.tag }}
       
       - name: Generate New Version according to change_type
-        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' && steps.bump.outputs.required == 'true' }}
+        if: ${{ steps.bump.outputs.required == 'true' }}
         id: newversion
         run: |
           if [ "${{ github.event.inputs.change_type }}" = "minor" ]; then 
