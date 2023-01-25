@@ -312,6 +312,7 @@ jobs:
             fi;
           else
             # if branch is feature branch, append alpha.<commit_hash> to the latest tag
+            git_hash=$(git rev-parse --short "$GITHUB_SHA")
             tag=${{ steps.current_tag.outputs.tag }}"-alpha."$git_hash
           fi;
           echo "tag=$tag" >> $GITHUB_OUTPUT
