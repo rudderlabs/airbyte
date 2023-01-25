@@ -253,44 +253,67 @@ jobs:
       
       - name: Get previous tag
         if: ${{ github.event.inputs.customtag == '' }}
-        id: previoustag
+        id: current_tag
         uses: "debanjan97/github-action-get-previous-tag@v1.0.0"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
           sort: ${{ github.event.inputs.sort_by }}
-          stable: true
+          stable: true # ignores alpha builds
       
-      - name: Get Next Version
-        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' }}
-        id: nextversion
+      - name: Check if main has new commits since the last tag
+        if: ${{ github.ref_name == 'main' }}
+        id: maincheck
+        run: |
+          last_commit=${git rev-list -n 1 ${{ steps.current_tag.outputs.tag }}}
+          current_commit=${{ github.sha }}
+          if [ $last_commit = $current_commit ]; then 
+            changed=false
+          else
+            changed=true
+          fi;
+          echo "changed=$changed" >> $GITHUB_OUTPUT
+      
+      - name: Calculate Next Versions
+        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' && steps.maincheck.outputs.status == 'true' }}
+        id: calculatenextversion
         uses: "WyriHaximus/github-action-next-semvers@v1"
         with:
-          version: ${{ steps.previoustag.outputs.tag }}
+          version: ${{ steps.current_tag.outputs.tag }}
       
-      - name: Generate Next Version according to change_type
-        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' }}
-        id: version
+      - name: Generate New Version according to change_type
+        if: ${{ github.event.inputs.customtag == '' && github.ref_name == 'main' && steps.maincheck.outputs.status == 'true' }}
+        id: newversion
         run: |
           if [ "${{ github.event.inputs.change_type }}" = "minor" ]; then 
-            nextversion=${{ steps.nextversion.outputs.v_minor }}  
+            newversion=${{ steps.calculatenextversion.outputs.v_minor }}  
           else
-            nextversion=${{ steps.nextversion.outputs.v_patch }}  
+            newversion=${{ steps.calculatenextversion.outputs.v_patch }}  
           fi;
-          source_branch_name="${GITHUB_REF##*/}"
-          git_hash=$(git rev-parse --short "$GITHUB_SHA")
-
-          # for dev branches, prefix "-alpha.<commit-hash>"
-          if [ $source_branch_name != "main" ]; then 
-            nextversion=$nextversion"-alpha."$git_hash
-          fi;
-
-          echo "next_version=$nextversion" >> $GITHUB_OUTPUT
+          echo "version=$newversion" >> $GITHUB_OUTPUT
       
       - name: Get Build Tag
         id: buildtag
         run: |
-          tag=${{ github.event.inputs.customtag || steps.version.outputs.next_version }}
+          # if custom tag is present, return it
+          if [ "${{ github.event.inputs.customtag }}" != "" ]; then
+            tag="${{ github.event.inputs.customtag }}"
+            echo "tag=$tag" >> $GITHUB_OUTPUT
+            exit 0
+          fi;
+          
+          source_branch_name="${GITHUB_REF##*/}"
+          if [ $source_branch_name = "main" ]; then 
+            if [ "${{ steps.maincheck.outputs.status }}"="false" ]; then
+              # return current tag, if no new commits
+              tag=${{ steps.current_tag.outputs.tag }}
+            else
+              tag=${{ steps.newversion.outputs.version }}
+            fi;
+          else
+            # if branch is feature branch, append alpha.<commit_hash> to the latest tag
+            tag=${{ steps.current_tag.outputs.tag }}"-alpha."$git_hash
+          fi;
           echo "tag=$tag" >> $GITHUB_OUTPUT
       
       - uses: mukunku/tag-exists-action@v1.2.0
