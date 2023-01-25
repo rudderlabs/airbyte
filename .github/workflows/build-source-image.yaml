@@ -220,7 +220,7 @@ on:
         description: 'Custom tag (If entered, the image will be build using this tag)'
       
       change_type:
-        description: 'Choose between minor and patch (only applicable when branch is `main`)'
+        description: 'Choose between minor and patch (only applicable when branch is "main")'
         required: true 
         type: choice 
         default: "minor"
