@@ -7,29 +7,34 @@
     "required": ["replication_start_date"],
     "additionalProperties": true,
     "properties": {
-      "authorization": {
-        "type": "object",
-        "title": "API Key Authentication",
-        "required": ["auth_type", "api_token"],
-        "properties": {
-          "auth_type": {
-            "type": "string",
-            "const": "Token",
-            "order": 0
+      "authorization" : {
+        "type" : "object",
+        "title" : "API Key Authentication",
+        "required" : [
+          "auth_type",
+          "api_token"
+        ],
+        "properties" : {
+          "auth_type" : {
+            "type" : "string",
+            "const" : "Token",
+            "order" : 0
           },
-          "api_token": {
-            "title": "API Token",
-            "type": "string",
-            "airbyte_secret": true
+          "api_token" : {
+            "title" : "API Token",
+            "type" : "string",
+            "airbyte_secret" : true
           }
         }
+      },
+      "replication_start_date" : {
+        "title" : "Start Date",
+        "pattern" : "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+        "examples" : [
+          "2017-01-25T00:00:00Z"
+        ],
+        "type" : "string"
       }
-    },
-    "replication_start_date": {
-      "title": "Start Date",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
-      "examples": ["2017-01-25T00:00:00Z"],
-      "type": "string"
     }
   },
   "supportsIncremental": true
