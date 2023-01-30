@@ -25,6 +25,9 @@
     },
     "add_time": {
       "type": ["null", "string"]
+    },
+    "content": {
+      "type": ["null", "string"]
     }
   }
 }
