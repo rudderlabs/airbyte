@@ -220,7 +220,7 @@ on:
         description: 'Custom tag (If entered, the image will be build using this tag)'
       
       change_type:
-        description: 'Change type (only applicable when image build from main, ignored when changes are required in latest tag)'
+        description: 'Change type (only applicable when image build from main, ignored when changes are included in latest tag)'
         required: true 
         type: choice 
         default: "minor"
