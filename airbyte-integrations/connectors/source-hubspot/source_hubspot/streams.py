@@ -5,6 +5,7 @@
 import json
 import sys
 import time
+import logging
 from abc import ABC, abstractmethod
 from functools import cached_property, lru_cache
 from http import HTTPStatus
@@ -69,7 +70,8 @@ def retry_connection_handler(**kwargs):
             return False
         if isinstance(exc, (HubspotInvalidAuth, HubspotAccessDenied)):
             return True
-        return exc.response is not None and HTTPStatus.BAD_REQUEST <= exc.response.status_code < HTTPStatus.INTERNAL_SERVER_ERROR
+        status_code = exc.response.status_code
+        return exc.response is not None and HTTPStatus.BAD_REQUEST <= status_code < HTTPStatus.INTERNAL_SERVER_ERROR and status_code != HTTPStatus.TOO_MANY_REQUESTS
 
     return backoff.on_exception(
         backoff.expo,
