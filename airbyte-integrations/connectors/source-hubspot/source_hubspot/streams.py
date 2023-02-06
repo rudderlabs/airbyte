@@ -5,7 +5,6 @@
 import json
 import sys
 import time
-import logging
 from abc import ABC, abstractmethod
 from functools import cached_property, lru_cache
 from http import HTTPStatus
