@@ -176,12 +176,15 @@ class Events(IncrementalAmplitudeStream):
             return []
 
         for gzip_filename in zip_file.namelist():
-            with zip_file.open(gzip_filename) as file:
-                for record in self._parse_zip_file(file):
-                    if record[self.cursor_field] >= state_value:
-                        user_id_key = f"{self.name}_user_id" # to avoid name collision with user_id field
-                        record[user_id_key] = record.pop("user_id")
-                        yield self._date_time_to_rfc3339(record)  # transform all `date-time` to RFC3339
+            try:
+                with zip_file.open(gzip_filename) as file:
+                    for record in self._parse_zip_file(file):
+                        if record[self.cursor_field] >= state_value:
+                            user_id_key = f"{self.name}_user_id" # to avoid name collision with user_id field
+                            record[user_id_key] = record.pop("user_id")
+                            yield self._date_time_to_rfc3339(record)  # transform all `date-time` to RFC3339
+            except Exception as e:
+                self.logger.warning(f"Failed to parse file {gzip_filename} in zip file in response to URL: {response.request.url} with error: {e}")
 
     def _parse_zip_file(self, zip_file: IO[bytes]) -> Iterable[Mapping]:
         with gzip.open(zip_file) as file:
