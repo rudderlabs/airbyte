@@ -88,14 +88,19 @@ class IncrementalAmplitudeStream(AmplitudeStream, ABC):
                 result.append(key)
         return result
 
-    def _date_time_to_rfc3339(self, record: Mapping[str, Any]) -> Mapping[str, Any]:
+    def _date_time_to_rfc3339(self, record: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         """
         Transform 'date-time' items to RFC3339 format
         """
         date_time_fields = self._get_date_time_items_from_schema()
         for item in record:
             if item in date_time_fields:
-                record[item] = pendulum.parse(record[item]).to_rfc3339_string()
+                dt_value = record[item]
+                if not dt_value:
+                    # either null or empty string, leave it as it
+                    record[item] = dt_value
+                else:
+                    record[item] = pendulum.parse(dt_value).to_rfc3339_string()
         return record
 
     def _get_end_date(self, current_date: pendulum, end_date: pendulum = pendulum.now()):
@@ -176,15 +181,12 @@ class Events(IncrementalAmplitudeStream):
             return []
 
         for gzip_filename in zip_file.namelist():
-            try:
-                with zip_file.open(gzip_filename) as file:
-                    for record in self._parse_zip_file(file):
-                        if record[self.cursor_field] >= state_value:
-                            user_id_key = f"{self.name}_user_id" # to avoid name collision with user_id field
-                            record[user_id_key] = record.pop("user_id")
-                            yield self._date_time_to_rfc3339(record)  # transform all `date-time` to RFC3339
-            except Exception as e:
-                self.logger.warning(f"Failed to parse file {gzip_filename} in zip file in response to URL: {response.request.url} with error: {e}")
+            with zip_file.open(gzip_filename) as file:
+                for record in self._parse_zip_file(file):
+                    if record[self.cursor_field] >= state_value:
+                        user_id_key = f"{self.name}_user_id" # to avoid name collision with user_id field
+                        record[user_id_key] = record.pop("user_id")
+                        yield self._date_time_to_rfc3339(record)  # transform all `date-time` to RFC3339
 
     def _parse_zip_file(self, zip_file: IO[bytes]) -> Iterable[Mapping]:
         with gzip.open(zip_file) as file:
