@@ -88,7 +88,12 @@ class IncrementalAmplitudeStream(AmplitudeStream, ABC):
         date_time_fields = self._get_date_time_items_from_schema()
         for item in record:
             if item in date_time_fields:
-                record[item] = pendulum.parse(record[item]).to_rfc3339_string()
+                dt_value = record[item]
+                if not dt_value:
+                    # either null or empty string, leave it as it
+                    record[item] = dt_value
+                else:
+                    record[item] = pendulum.parse(dt_value).to_rfc3339_string()
         return record
 
     def _get_end_date(self, current_date: pendulum, end_date: pendulum = pendulum.now()):
