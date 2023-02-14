@@ -180,7 +180,9 @@ class IncrementalStripeStreamWithUpdates(IncrementalStripeStream):
         """
         # Get an iterator and pull the first value.
         it = iter(iterable)
-        last = next(it)
+        last = next(it, None)
+        if not last:
+            return
         # Run the iterator to exhaustion (starting from the second value).
         for val in it:
             yield last
@@ -301,7 +303,7 @@ class CustomerBalanceTransactions(SingleEmptySliceMixin, StripeStream):
         slices = customers_stream.stream_slices(sync_mode=SyncMode.full_refresh)
         for _slice in slices:
             for customer in customers_stream.read_records(sync_mode=SyncMode.full_refresh, stream_slice=_slice):
-                yield from super().read_records(stream_slice={"customer_id": customer["id"]}, **kwargs)
+                yield from super().read_records(stream_slice={"customer_id": customer["record_id"]}, **kwargs)
 
 
 class Coupons(IncrementalStripeStream):
