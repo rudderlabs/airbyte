@@ -15,12 +15,9 @@ from airbyte_cdk.sources.utils.schema_helpers import split_config
 from airbyte_cdk.utils.event_timing import create_timer
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 from requests import HTTPError
-<<<<<<< HEAD
 from source_hubspot.constants import API_KEY_CREDENTIALS
-=======
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
->>>>>>> 537d1816653 (fix: hubspot dict issue)
 from source_hubspot.streams import (
     API,
     Campaigns,
