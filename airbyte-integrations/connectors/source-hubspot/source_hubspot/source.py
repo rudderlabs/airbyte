@@ -15,7 +15,12 @@ from airbyte_cdk.sources.utils.schema_helpers import split_config
 from airbyte_cdk.utils.event_timing import create_timer
 from airbyte_cdk.utils.traced_exception import AirbyteTracedException
 from requests import HTTPError
+<<<<<<< HEAD
 from source_hubspot.constants import API_KEY_CREDENTIALS
+=======
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
+>>>>>>> 537d1816653 (fix: hubspot dict issue)
 from source_hubspot.streams import (
     API,
     Campaigns,
@@ -67,11 +72,15 @@ class SourceHubspot(AbstractSource):
         try:
             access_token = authenticator.get_access_token()
             url = f"https://api.hubapi.com/oauth/v1/access-tokens/{access_token}"
-            response = requests.get(url=url)
-            response.raise_for_status()
-            response_json = response.json()
-            granted_scopes = response_json["scopes"]
-            return granted_scopes
+            with requests.Session() as s:
+                s.mount("https://api.hubapi.com/oauth/v1/access-tokens/", HTTPAdapter(max_retries=Retry(
+                    total=10, backoff_factor=2, allowed_methods=None, status_forcelist=[429, 500, 502, 503, 504])))
+                response = s.get(url=url)
+                response = requests.get(url=url)
+                response.raise_for_status()
+                response_json = response.json()
+                granted_scopes = response_json["scopes"]
+                return granted_scopes
         except Exception as e:
             return False, repr(e)
 
