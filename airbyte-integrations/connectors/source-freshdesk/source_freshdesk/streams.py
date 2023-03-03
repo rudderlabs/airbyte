@@ -250,8 +250,6 @@ class Settings(FreshdeskStream):
     def path(self, **kwargs) -> str:
         return "settings/helpdesk"
 
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        yield response.json()
 
 # Skills api keeps failing with 404 error maybe because this resource is available only for enterprise accounts users.
 # Not sure as the documentation is not clear about it. Disabling it for now.
