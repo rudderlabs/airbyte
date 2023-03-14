@@ -167,3 +167,8 @@ class SourceGoogleSearchConsole(AbstractSource):
                 service_account_info=authorization["service_account_info"],
                 email=authorization["email"],
             )
+    
+    def spec(self, *args, **kwargs):
+        import time
+        time.sleep(50)
+        return super().spec(*args, **kwargs)
