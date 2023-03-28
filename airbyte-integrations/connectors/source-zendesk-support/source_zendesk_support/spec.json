@@ -48,7 +48,7 @@
             "title": "API Token",
             "type": "object",
             "required": ["email", "api_token"],
-            "additionalProperties": false,
+            "additionalProperties": true,
             "properties": {
               "credentials": {
                 "type": "string",
