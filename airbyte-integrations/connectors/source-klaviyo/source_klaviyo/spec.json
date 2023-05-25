@@ -22,7 +22,7 @@
       },
       "events_look_back_window": {
         "title": "Events Look Back Window In Minutes",
-        "description": "How long back the connector we look back to fetch events from the checkpoint timestamp. ",
+        "description": "Events data created in the past N minutes since your last sync ended is re-exported.",
         "type": "integer",
         "examples": [10, 20, 30, 60, 120],
         "default": 0
