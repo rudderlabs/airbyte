@@ -262,15 +262,12 @@ class Metrics(KlaviyoStream):
 
 class Events(IncrementalKlaviyoStream):
     """Docs: https://developers.klaviyo.com/en/reference/metrics-timeline"""
-    def __init__(self, start_date:str, events_look_back_window: int, **kwargs):
-        super().__init__(start_date=start_date, **kwargs)
-        self.events_look_back_window = events_look_back_window
 
     cursor_field = "timestamp"
 
     @property
     def look_back_window_in_seconds(self) -> Optional[int]:
-        return timedelta(minutes=self.events_look_back_window).seconds
+        return timedelta(minutes=30).seconds
 
     def path(self, **kwargs) -> str:
         return "metrics/timeline"

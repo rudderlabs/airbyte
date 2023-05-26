@@ -31,10 +31,9 @@ class SourceKlaviyo(AbstractSource):
         """
         api_key = config["api_key"]
         start_date = config["start_date"]
-        events_look_back_window = config.get("events_look_back_window", 0)
         return [
             Campaigns(api_key=api_key),
-            Events(api_key=api_key, start_date=start_date, events_look_back_window=events_look_back_window),
+            Events(api_key=api_key, start_date=start_date),
             GlobalExclusions(api_key=api_key, start_date=start_date),
             Lists(api_key=api_key),
             Metrics(api_key=api_key),
