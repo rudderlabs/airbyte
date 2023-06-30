@@ -343,6 +343,16 @@ class Stream(HttpStream, ABC):
         if response.status_code == codes.too_many_requests:
             return float(response.headers.get("Retry-After", 3))
 
+    def should_retry(self, response: requests.Response) -> bool:
+        """
+        Should retry if we get oauth-token is expired
+        """
+        if response.status_code == HTTPStatus.UNAUTHORIZED and TOKEN_EXPIRED_ERROR.lower() in response.reason.lower():
+            # try to reset the auth token
+            self._authenticator.get_access_token()
+            return True
+        return super().should_retry(response)
+
     def request_headers(
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> Mapping[str, Any]:
