@@ -299,7 +299,7 @@ class Authorizations(IncrementalStripeStream):
         return "issuing/authorizations"
 
 
-class Customers(IncrementalStripeStream):
+class Customers(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/customers/list
     """
@@ -334,7 +334,7 @@ class Cardholders(IncrementalStripeStream):
         return "issuing/cardholders"
 
 
-class Charges(IncrementalStripeStream):
+class Charges(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/charges/list
     """
@@ -643,7 +643,7 @@ class Reviews(IncrementalStripeStream):
         return "reviews"
 
 
-class Subscriptions(IncrementalStripeStream):
+class Subscriptions(IncrementalStripeStreamWithUpdates):
     """
     API docs: https://stripe.com/docs/api/subscriptions/list
     """
