@@ -235,7 +235,9 @@ class IncrementalKlaviyoStreamV1(KlaviyoStreamV1, ABC):
             last_next_token = stream_state.get("last_next_token", None)
             if last_next_token is not None:
                 token_timestamp = int(str(last_next_token).split(":")[0])
-                if token_timestamp >= state_ts:
+                # if the token stamp is equal to the state timestamp then we will use the next token as since value
+                # This will allow us to recover from extreme cases where there millions of events for the same timestamp.
+                if token_timestamp == state_ts:
                     params["since"] = last_next_token
                     return params
 
@@ -412,7 +414,7 @@ class Events(IncrementalKlaviyoStreamV1):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.last_next_tone = None
+        self.last_next_token = None
 
     @property
     def look_back_window_in_seconds(self) -> Optional[int]:
@@ -436,9 +438,9 @@ class Events(IncrementalKlaviyoStreamV1):
             yield process_record(record)
 
     def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
-        supper_state = super().get_updated_state(current_stream_state, latest_record)
-        supper_state["last_next_token"] = self.last_next_tone
-        return supper_state
+        super_state = super().get_updated_state(current_stream_state, latest_record)
+        super_state["last_next_token"] = self.last_next_token
+        return super_state
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         """
@@ -451,10 +453,10 @@ class Events(IncrementalKlaviyoStreamV1):
         decoded_response = response.json()
         if decoded_response.get("next"):
             next_token = decoded_response["next"]
-            self.last_next_tone = next_token
+            self.last_next_token = next_token
             return {"since": next_token}
 
-        self.last_next_tone = None
+        self.last_next_token = None
         data = decoded_response.get("data", [{}]) or [{}]
         self.logger.info("Last timestamp -> " + str(data[-1].get("timestamp", "No timestamp")))
 
