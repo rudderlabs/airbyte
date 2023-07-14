@@ -156,6 +156,9 @@ class IncrementalKlaviyoStream(KlaviyoStream, ABC):
         decoded_response = response.json()
         if decoded_response.get("next"):
             return {"since": decoded_response["next"]}
+        
+        data = decoded_response.get("data", [{}]) or [{}]
+        self.logger.info("Last timestamp -> " + str(data[-1].get("timestamp", "No timestamp")))
 
         data = decoded_response.get("data", [{}]) or [{}]
         self.logger.info("Last timestamp -> " + str(data[-1].get("timestamp", "No timestamp")))
@@ -303,7 +306,7 @@ class Events(IncrementalKlaviyoStream):
 
     @property
     def look_back_window_in_seconds(self) -> Optional[int]:
-        return timedelta(minutes=120).seconds
+        return timedelta(minutes=30).seconds
 
     def path(self, **kwargs) -> str:
         return "metrics/timeline"
