@@ -147,6 +147,9 @@ class IncrementalKlaviyoStream(KlaviyoStream, ABC):
         decoded_response = response.json()
         if decoded_response.get("next"):
             return {"since": decoded_response["next"]}
+        
+        data = decoded_response.get("data", [{}]) or [{}]
+        self.logger.info("Last timestamp -> " + str(data[-1].get("timestamp", "No timestamp")))
 
         return None
 
