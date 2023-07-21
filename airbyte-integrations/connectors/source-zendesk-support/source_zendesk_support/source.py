@@ -70,9 +70,9 @@ class SourceZendeskSupport(AbstractSource):
         # new authentication flow
         auth = config.get("credentials")
         if auth:
-            if auth.get("credentials") == "oauth2.0":
+            if "access_token" in auth:
                 return TokenAuthenticator(token=config["credentials"]["access_token"])
-            elif auth.get("credentials") == "api_token":
+            elif "api_token" in auth:
                 return BasicApiTokenAuthenticator(config["credentials"]["email"], config["credentials"]["api_token"])
             else:
                 raise SourceZendeskException(f"Not implemented authorization method: {config['credentials']}")
