@@ -42,7 +42,7 @@ class GAQL:
     def parse(cls, query):
         m = cls.REGEX.match(query)
         if not m:
-            raise Exception(f"incorrect GAQL query statement: {repr(query)}")
+            raise ValueError
 
         fields = [f.strip() for f in m.group("FieldNames").split(",")]
         for field in fields:
