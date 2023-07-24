@@ -92,7 +92,7 @@ class SourceGoogleAds(AbstractSource):
         try:
             config = self._validate_and_transform(config)
         except ValueError as e:
-            return False, f"incorrect GAQL query statement: {repr(e)}"
+            return False, f"error while validating custom query: {repr(e)}"
         except Exception as e:
             return False, f"error: {repr(e)}"
         try:
