@@ -23,6 +23,8 @@ definitions:
     request_headers:
       Intercom-Version: '2.5' # ATTENTION: API version change is possible here
       Accept: 'application/json'
+    error_handler:
+      type: "DefaultErrorHandler"
   retriever:
     description: "Base Retriever for Full Refresh streams"
     record_selector:
@@ -140,7 +142,7 @@ definitions:
     $ref: "#/definitions/stream_full_refresh"
     incremental_sync:
       type: CustomIncrementalSync
-      class_name: source_intercom.components.IncrementalSingleSlice
+      class_name: source_intercom.components.IncrementalSingleSliceCursor
       cursor_field: "updated_at"
     retriever:
       $ref: "#/definitions/stream_full_refresh/retriever"
@@ -207,7 +209,7 @@ definitions:
     $ref: "#/definitions/stream_full_refresh"
     incremental_sync:
       type: CustomIncrementalSync
-      class_name: source_intercom.components.IncrementalSubstreamSlicer
+      class_name: source_intercom.components.IncrementalSubstreamSlicerCursor
       cursor_field: "updated_at"
     retriever:
       $ref: "#/definitions/stream_full_refresh/retriever"
@@ -264,7 +266,7 @@ definitions:
     $ref: "#/definitions/stream_full_refresh"
     incremental_sync:
       type: CustomIncrementalSync
-      class_name: source_intercom.components.IncrementalSingleSlice
+      class_name: source_intercom.components.IncrementalSingleSliceCursor
       cursor_field: "updated_at"
     retriever:
       $ref: "#/definitions/stream_full_refresh/retriever"
