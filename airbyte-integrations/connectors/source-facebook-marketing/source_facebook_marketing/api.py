@@ -25,7 +25,7 @@ class FacebookAPIException(Exception):
     """General class for all API errors"""
 
 
-backoff_policy = retry_pattern(backoff.expo, FacebookRequestError, max_tries=5, factor=10)
+backoff_policy = retry_pattern(backoff.expo, FacebookRequestError, max_tries=5, factor=120)
 
 
 class MyFacebookAdsApi(FacebookAdsApi):
@@ -93,6 +93,12 @@ class MyFacebookAdsApi(FacebookAdsApi):
     def set_access_token(cls, access_token):
         cls._access_token = access_token
 
+    @classmethod
+    def reset_session(cls):
+        logger.warning("resetting session after sleep")
+        api = MyFacebookAdsApi.init(access_token=MyFacebookAdsApi._access_token, crash_log=False)
+        FacebookAdsApi.set_default_api(api)
+
     def _compute_pause_interval(self, usage, pause_interval):
         """The sleep time will be calculated based on usage consumed."""
         if usage >= self.MAX_RATE:
@@ -128,9 +134,7 @@ class MyFacebookAdsApi(FacebookAdsApi):
             sleep_time = self._compute_pause_interval(usage=usage, pause_interval=pause_interval)
             logger.warning(f"Utilization is too high ({usage})%, pausing for {sleep_time}")
             sleep(sleep_time.total_seconds())
-            logger.warning("resetting session after sleep")
-            api = MyFacebookAdsApi.init(access_token=MyFacebookAdsApi._access_token, crash_log=False)
-            FacebookAdsApi.set_default_api(api)
+            MyFacebookAdsApi.reset_session()
 
     def _update_insights_throttle_limit(self, response: FacebookResponse):
         """
@@ -159,7 +163,12 @@ class MyFacebookAdsApi(FacebookAdsApi):
         api_version=None,
     ):
         """Makes an API call, delegate actual work to parent class and handles call rates"""
-        response = super().call(method, path, params, headers, files, url_override, api_version)
+        try:
+            response = super().call(method, path, params, headers, files, url_override, api_version)
+        except FacebookRequestError as exc:
+            MyFacebookAdsApi.reset_session()
+            raise exc
+
         self._update_insights_throttle_limit(response)
         self._handle_call_rate_limit(response, params)
         return response
