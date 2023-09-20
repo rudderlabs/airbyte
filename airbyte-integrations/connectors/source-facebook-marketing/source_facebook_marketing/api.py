@@ -176,7 +176,7 @@ class API:
         self._account_id = account_id
         # design flaw in MyFacebookAdsApi requires such strange set of new default api instance
         self.api = MyFacebookAdsApi.init(access_token=access_token, crash_log=False)
-        self.api.set_access_token(access_token)
+        MyFacebookAdsApi.api.set_access_token(access_token)
         FacebookAdsApi.set_default_api(self.api)
 
     @cached_property
