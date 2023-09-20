@@ -49,9 +49,6 @@ class MyFacebookAdsApi(FacebookAdsApi):
     def ads_insights_throttle(self) -> Throttle:
         return self._ads_insights_throttle
 
-    def set_ads_insights_throttle(self, ads_insights_throttle):
-        self._ads_insights_throttle = ads_insights_throttle
-
     @staticmethod
     def _parse_call_rate_header(headers):
         usage = 0
@@ -133,7 +130,6 @@ class MyFacebookAdsApi(FacebookAdsApi):
             sleep(sleep_time.total_seconds())
             logger.warning("resetting session after sleep")
             api = MyFacebookAdsApi.init(access_token=MyFacebookAdsApi._access_token, crash_log=False)
-            api.set_ads_insights_throttle(self._ads_insights_throttle)
             FacebookAdsApi.set_default_api(api)
 
     def _update_insights_throttle_limit(self, response: FacebookResponse):
