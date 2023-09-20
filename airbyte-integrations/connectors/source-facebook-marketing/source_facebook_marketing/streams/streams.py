@@ -92,6 +92,7 @@ class Ads(FBMarketingIncrementalStream):
     """doc: https://developers.facebook.com/docs/marketing-api/reference/adgroup"""
 
     entity_prefix = "ad"
+    use_batch = False
 
     def list_objects(self, params: Mapping[str, Any]) -> Iterable:
         return self._api.account.get_ads(params=params)
@@ -101,6 +102,7 @@ class AdSets(FBMarketingIncrementalStream):
     """doc: https://developers.facebook.com/docs/marketing-api/reference/ad-campaign"""
 
     entity_prefix = "adset"
+    use_batch = False
 
     def list_objects(self, params: Mapping[str, Any]) -> Iterable:
         return self._api.account.get_ad_sets(params=params)
