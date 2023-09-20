@@ -43,10 +43,14 @@ class MyFacebookAdsApi(FacebookAdsApi):
 
     # Insights async jobs throttle
     _ads_insights_throttle: Throttle
+    _access_token = None
 
     @property
     def ads_insights_throttle(self) -> Throttle:
         return self._ads_insights_throttle
+
+    def set_ads_insights_throttle(self, ads_insights_throttle):
+        self._ads_insights_throttle = ads_insights_throttle
 
     @staticmethod
     def _parse_call_rate_header(headers):
@@ -88,6 +92,10 @@ class MyFacebookAdsApi(FacebookAdsApi):
 
         return usage, pause_interval
 
+    @classmethod
+    def set_access_token(cls, access_token):
+        cls._access_token = access_token
+
     def _compute_pause_interval(self, usage, pause_interval):
         """The sleep time will be calculated based on usage consumed."""
         if usage >= self.MAX_RATE:
@@ -123,6 +131,10 @@ class MyFacebookAdsApi(FacebookAdsApi):
             sleep_time = self._compute_pause_interval(usage=usage, pause_interval=pause_interval)
             logger.warning(f"Utilization is too high ({usage})%, pausing for {sleep_time}")
             sleep(sleep_time.total_seconds())
+            logger.warning("resetting session after sleep")
+            api = MyFacebookAdsApi.init(access_token=MyFacebookAdsApi._access_token, crash_log=False)
+            api.set_ads_insights_throttle(self._ads_insights_throttle)
+            FacebookAdsApi.set_default_api(api)
 
     def _update_insights_throttle_limit(self, response: FacebookResponse):
         """
@@ -164,6 +176,7 @@ class API:
         self._account_id = account_id
         # design flaw in MyFacebookAdsApi requires such strange set of new default api instance
         self.api = MyFacebookAdsApi.init(access_token=access_token, crash_log=False)
+        self.api.set_access_token(access_token)
         FacebookAdsApi.set_default_api(self.api)
 
     @cached_property
