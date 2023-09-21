@@ -95,7 +95,7 @@ class MyFacebookAdsApi(FacebookAdsApi):
 
     @classmethod
     def reset_session(cls):
-        logger.warning("resetting session after sleep")
+        logger.info("resetting session after sleep")
         api = MyFacebookAdsApi.init(access_token=MyFacebookAdsApi._access_token, crash_log=False)
         FacebookAdsApi.set_default_api(api)
 
