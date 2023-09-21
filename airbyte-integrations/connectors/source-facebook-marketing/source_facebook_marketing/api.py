@@ -16,7 +16,7 @@ from facebook_business import FacebookAdsApi
 from facebook_business.adobjects.adaccount import AdAccount
 from facebook_business.api import FacebookResponse
 from facebook_business.exceptions import FacebookRequestError
-from source_facebook_marketing.streams.common import retry_pattern
+from source_facebook_marketing.streams.common import retry_pattern, FACEBOOK_CONNECTION_RESET_ERROR_CODE
 
 logger = logging.getLogger("airbyte")
 
@@ -168,6 +168,15 @@ class MyFacebookAdsApi(FacebookAdsApi):
         except FacebookRequestError as exc:
             MyFacebookAdsApi.reset_session()
             raise exc
+        except ConnectionResetError as exc:
+            MyFacebookAdsApi.reset_session()
+            body = {
+                "error": {
+                    "code": FACEBOOK_CONNECTION_RESET_ERROR_CODE,
+                    "is_transient": "true",
+                }
+            }
+            raise FacebookRequestError(str(exc), {}, 400, None, json.dumps(body))
 
         self._update_insights_throttle_limit(response)
         self._handle_call_rate_limit(response, params)
