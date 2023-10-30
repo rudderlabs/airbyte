@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.11.6-alpine3.18 as base
 
 # Bash is installed for more convenient debugging.
 RUN apt-get update && apt-get install -y bash && rm -rf /var/lib/apt/lists/*
