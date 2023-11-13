@@ -147,6 +147,7 @@ UNSUPPORTED_BULK_API_SALESFORCE_OBJECTS = [
     "ServiceAppointmentStatus",
     "ShiftStatus",
     "SolutionStatus",
+    "Task",
     "TaskPriority",
     "TaskStatus",
     "UndecidedEventRelation",
