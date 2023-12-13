@@ -219,7 +219,7 @@ class Templates(SendgridStreamMetadataPagination):
         return "templates"
 
 
-class Messages(SendgridStream, SendgridStreamIncrementalMixin):
+class Messages(SendgridStreamOffsetPagination, SendgridStreamIncrementalMixin):
     """
     https://docs.sendgrid.com/api-reference/e-mail-activity/filter-all-messages
     """
@@ -273,7 +273,7 @@ class Blocks(SendgridStreamOffsetPagination, SendgridStreamIncrementalMixin):
         return "suppression/blocks"
 
 
-class Bounces(SendgridStream, SendgridStreamIncrementalMixin):
+class Bounces(SendgridStreamOffsetPagination, SendgridStreamIncrementalMixin):
     primary_key = "email"
 
     def path(self, **kwargs) -> str:
