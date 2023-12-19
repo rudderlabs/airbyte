@@ -65,7 +65,28 @@ class SendgridStream(HttpStream, ABC):
                     )
                     setattr(self, "raise_on_http_errors", False)
                     return False
+        elif status == 429:
+            self.logger.info(f"Rate limit exceeded")
+            setattr(self, "raise_on_http_errors", False)
+            return True
         return 500 <= response.status_code < 600
+    
+    def backoff_time(self, response: requests.Response) -> float:
+        # Not all responses have rate limit headers
+        # Eg: Messages API has rate limit headers while lists API does not
+        # If present the rate limit headers look like this (https://docs.sendgrid.com/api-reference/how-to-use-the-sendgrid-v3-api/rate-limits)
+        # x-ratelimit-remaining: number of requests remaining
+        # x-ratelimit-reset: time in seconds after which rate limit resets (Seems to be < 1 minute)
+        # x-ratelimit-limit: total number of requests allowed in the current window
+        response_headers = response.headers
+        RATE_LIMIT_RESET_HEADER = "x-ratelimit-reset"
+        if RATE_LIMIT_RESET_HEADER in response_headers:
+            # Assumes it is a number
+            sleep_time = int(response_headers.get(RATE_LIMIT_RESET_HEADER)) + 1
+            self.logger.info(f"Rate limit exceeded. Sleeping for {sleep_time} seconds")
+            return sleep_time
+        # Use default exponential backoff if rate limit headers are not present
+        return super().backoff_time(response)
 
 
 class SendgridStreamOffsetPagination(SendgridStream):
