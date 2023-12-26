@@ -81,10 +81,13 @@ class SendgridStream(HttpStream, ABC):
         response_headers = response.headers
         RATE_LIMIT_RESET_HEADER = "x-ratelimit-reset"
         if RATE_LIMIT_RESET_HEADER in response_headers:
-            # Assumes it is a number
-            sleep_time = int(response_headers.get(RATE_LIMIT_RESET_HEADER)) + 1
-            self.logger.info(f"Rate limit exceeded. Sleeping for {sleep_time} seconds")
-            return sleep_time
+            try:
+                sleep_time = int(response_headers.get(RATE_LIMIT_RESET_HEADER)) + 1
+                self.logger.info(f"Rate limit exceeded. Sleeping for {sleep_time} seconds")
+                return sleep_time
+            except ValueError:
+                # Log error and use default exponential backoff
+                self.logger.error(f"Rate limit reset header value is not a number. Value: {response_headers.get(RATE_LIMIT_RESET_HEADER)}")
         # Use default exponential backoff if rate limit headers are not present
         return super().backoff_time(response)
 
