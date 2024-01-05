@@ -36,7 +36,7 @@ class SendgridStream(HttpStream, ABC):
         json_response = response.json()
         records = json_response.get(self.data_field, []) if self.data_field is not None else json_response
 
-        if records is not None:
+        if records:
             for record in records:
                 yield record
         else:
@@ -52,6 +52,9 @@ class SendgridStream(HttpStream, ABC):
             )
             # do NOT print request headers as it contains auth token
             self.logger.info(err_msg)
+            if response.status_code in self.permission_error_codes.keys():
+                err_msg = f"Stream `{self.name}` is not available, due to subscription plan limitations or permission issues. Skipping."
+                raise PermissionError(err_msg)
 
     def should_retry(self, response: requests.Response) -> bool:
         """Override to provide skip the stream possibility"""
@@ -61,7 +64,7 @@ class SendgridStream(HttpStream, ABC):
             for message in response.json().get("errors", []):
                 if message.get("message") == self.permission_error_codes.get(status):
                     self.logger.error(
-                        f"Stream `{self.name}` is not available, due to subscription plan limitations or perrmission issues. Skipping."
+                        f"Stream `{self.name}` is not available, due to subscription plan limitations or permission issues. Skipping."
                     )
                     setattr(self, "raise_on_http_errors", False)
                     return False
@@ -104,8 +107,9 @@ class SendgridStreamOffsetPagination(SendgridStream):
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         stream_data = response.json()
-        if self.data_field:
-            stream_data = stream_data[self.data_field]
+        if not self.data_field or self.data_field not in stream_data:
+            return
+        stream_data = stream_data[self.data_field]
         if len(stream_data) < self.limit:
             return
         self.offset += self.limit
