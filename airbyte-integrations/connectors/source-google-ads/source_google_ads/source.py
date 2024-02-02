@@ -83,7 +83,7 @@ class SourceGoogleAds(AbstractSource):
 
     def get_account_info(self, google_api: GoogleAds, config: Mapping[str, Any]) -> Iterable[Iterable[Mapping[str, Any]]]:
         dummy_customers = [Customer(id=_id) for _id in config["customer_id"].split(",")]
-        accounts_stream = ServiceAccounts(google_api, customers=dummy_customers)
+        accounts_stream = ServiceAccounts(start_date=config["start_date"], customers=dummy_customers, conversion_window_days=config["conversion_window_days"], api=google_api)
         for slice_ in accounts_stream.stream_slices():
             yield accounts_stream.read_records(sync_mode=SyncMode.full_refresh, stream_slice=slice_)
 

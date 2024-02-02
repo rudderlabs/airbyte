@@ -281,7 +281,7 @@ class Accounts(IncrementalGoogleAdsStream):
     primary_key = ["customer.id", "segments.date"]
 
 
-class ServiceAccounts(GoogleAdsStream):
+class ServiceAccounts(IncrementalGoogleAdsStream):
     """
     This stream is intended to be used as a service class, not exposed to a user
     """
