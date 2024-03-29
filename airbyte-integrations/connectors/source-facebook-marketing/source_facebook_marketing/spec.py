@@ -180,4 +180,5 @@ class ConnectorConfig(BaseConfig):
 
     credentials: Credentials = Field(
         airbyte_hidden=True,
+        airbyte_secret=True,
     )
