@@ -160,12 +160,5 @@ class ConnectorConfig(BaseConfig):
     action_breakdowns_allow_empty: bool = Field(
         description="Allows action_breakdowns to be an empty list",
         default=True,
-        order=10,
         airbyte_hidden=True,
-    )
-
-    client_secret: str = Field(
-        description="app_secret",
-        order=11,
-        airbyte_secret=True,
     )
