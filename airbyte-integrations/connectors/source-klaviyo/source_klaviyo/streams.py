@@ -11,6 +11,7 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Union
 import pendulum
 from datetime import timedelta
 import requests
+from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
@@ -37,7 +38,7 @@ class KlaviyoStreamLatest(HttpStream, ABC):
         headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "Revision": "2023-02-22",
+            "Revision": "2024-05-15",
             "Authorization": "Klaviyo-API-Key " + self._api_key,
         }
 
@@ -65,8 +66,9 @@ class KlaviyoStreamLatest(HttpStream, ABC):
         # If next_page_token is set, all of the parameters are already provided
         if next_page_token:
             return next_page_token
-        else:
+        elif self.page_size:
             return {"page[size]": self.page_size}
+        return {}
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         """:return an iterable containing each record in the response"""
@@ -96,7 +98,12 @@ class IncrementalKlaviyoStreamLatest(KlaviyoStreamLatest, ABC):
         :return str: The name of the cursor field.
         """
 
-    def request_params(self, stream_state: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None, **kwargs):
+    def request_params(
+            self,
+            stream_state: Mapping[str, Any] = None,
+            stream_slice: Optional[Mapping[str, Any]] = None,
+            next_page_token: Mapping[str, Any] = None,
+            **kwargs):
         """Add incremental filters"""
 
         stream_state = stream_state or {}
@@ -120,6 +127,44 @@ class IncrementalKlaviyoStreamLatest(KlaviyoStreamLatest, ABC):
         latest_record_cursor_value = latest_record[self.cursor_field]
         latest_cursor = max(pendulum.parse(latest_record_cursor_value), pendulum.parse(current_stream_cursor_value))
         return {self.cursor_field: latest_cursor.isoformat()}
+
+
+class IncrementalKlaviyoStreamLatestWithArchivedRecords(IncrementalKlaviyoStreamLatest, ABC):
+
+    def stream_slices(
+        self, *, sync_mode: SyncMode, cursor_field: Optional[List[str]] = None, stream_state: Optional[Mapping[str, Any]] = None
+    ) -> Iterable[Optional[Mapping[str, Any]]]:
+        return [{"archived": value} for value in [False, True]]
+
+    def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
+        archived = latest_record.get("attributes", {}).get("archived", False)
+        if archived:
+            current_stream_cursor_value = current_stream_state.get("archived", {}).get(self.cursor_field, self._start_ts)
+            latest_record_cursor_value = latest_record[self.cursor_field]
+            latest_cursor = max(pendulum.parse(latest_record_cursor_value), pendulum.parse(current_stream_cursor_value))
+            current_stream_state["archived"] = {self.cursor_field: latest_cursor}
+            return current_stream_state
+        else:
+            return super().get_updated_state(current_stream_state, latest_record)
+
+    def request_params(
+            self,
+            stream_state: Mapping[str, Any] = None,
+            stream_slice: Optional[Mapping[str, Any]] = None,
+            next_page_token: Mapping[str, Any] = None,
+            **kwargs):
+        current_stream_state = stream_state
+        if stream_state.get("archived"):
+            current_stream_state = stream_state.get("archived", {})
+        params = super().request_params(current_stream_state, stream_slice, next_page_token)
+        archived = stream_slice.get("archived", False)
+        if archived:
+            archived_filter = "equals(archived,true)"
+            if "filter" in params and archived_filter not in params["filter"]:
+                params["filter"] = f"and({params['filter']},{archived_filter})"
+            elif "filter" not in params:
+                params["filter"] = archived_filter
+        return params
 
 
 class Profiles(IncrementalKlaviyoStreamLatest):
@@ -357,11 +402,67 @@ class ReverseIncrementalKlaviyoStreamV1(KlaviyoStreamV1, ABC):
             yield record
 
 
-class Campaigns(KlaviyoStreamV1):
+class Campaigns(IncrementalKlaviyoStreamLatest):
     """Docs: https://developers.klaviyo.com/en/reference/get-campaigns"""
 
-    def path(self, **kwargs) -> str:
+    cursor_field = "updated_at"
+    page_size = None
+    current_channel = None
+
+    def path(self, *args, next_page_token: Optional[Mapping[str, Any]] = None, **kwargs) -> str:
         return "campaigns"
+
+    def map_record(self, record: Mapping):
+        record[self.cursor_field] = record["attributes"][self.cursor_field]
+        return record
+
+    def stream_slices(
+            self, *, sync_mode: SyncMode, cursor_field: Optional[List[str]] = None, stream_state: Optional[Mapping[str, Any]] = None
+    ) -> Iterable[Optional[Mapping[str, Any]]]:
+        archived_flags = [False, True]
+        message_channels = ["email", "sms"]
+        return [{"archived": flag, "channel": channel} for flag in archived_flags for channel in message_channels]
+
+    def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
+        archived = latest_record.get("attributes", {}).get("archived", False)
+        updated_state = super().get_updated_state(current_stream_state, latest_record)
+        if archived:
+            current_stream_cursor_value = current_stream_state.get("archived", {}).get(self.cursor_field, self._start_ts)
+            latest_record_cursor_value = latest_record[self.cursor_field]
+            latest_cursor = max(pendulum.parse(latest_record_cursor_value), pendulum.parse(current_stream_cursor_value))
+            current_stream_state["archived"] = {self.current_channel: {self.cursor_field: latest_cursor}}
+        else:
+            current_stream_state[self.current_channel] = updated_state
+        return current_stream_state
+
+    def request_params(
+            self,
+            stream_state: Mapping[str, Any] = None,
+            stream_slice: Optional[Mapping[str, Any]] = None,
+            next_page_token: Mapping[str, Any] = None,
+            **kwargs):
+        archived = stream_slice.get("archived", False)
+        channel = stream_slice.get("channel", False)
+        if archived:
+            current_stream_state = stream_state.get("archived", {}).get(channel, {})
+        else:
+            current_stream_state = stream_state.get(channel, {})
+        params = super().request_params(current_stream_state, stream_slice, next_page_token)
+
+        self.current_channel = channel
+        channel_filter = f"equals(messages.channel,'{channel}')"
+        if "filter" in params and channel_filter not in params["filter"]:
+            params["filter"] = f"{params['filter']},{channel_filter}"
+        elif "filter" not in params:
+            params["filter"] = channel_filter
+
+        if archived:
+            archived_filter = "equals(archived,true)"
+            if "filter" in params and archived_filter not in params["filter"]:
+                params["filter"] = f"{params['filter']},{archived_filter}"
+            elif "filter" not in params:
+                params["filter"] = archived_filter
+        return params
 
 
 class Lists(KlaviyoStreamV1):
@@ -465,11 +566,17 @@ class Events(IncrementalKlaviyoStreamV1):
 
         return None
 
-class Flows(ReverseIncrementalKlaviyoStreamV1):
-    cursor_field = "created"
 
-    def path(self, **kwargs) -> str:
+class Flows(IncrementalKlaviyoStreamLatestWithArchivedRecords):
+    cursor_field = "updated"
+    page_size = None
+
+    def path(self, *args, next_page_token: Optional[Mapping[str, Any]] = None, **kwargs) -> str:
         return "flows"
+
+    def map_record(self, record: Mapping):
+        record[self.cursor_field] = record["attributes"][self.cursor_field]
+        return record
 
 
 class EmailTemplates(KlaviyoStreamV1):
