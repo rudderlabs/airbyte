@@ -465,13 +465,19 @@ class Campaigns(IncrementalKlaviyoStreamLatest):
         return params
 
 
-class Lists(KlaviyoStreamV1):
+class Lists(IncrementalKlaviyoStreamLatest):
     """Docs: https://developers.klaviyo.com/en/reference/get-lists"""
 
+    cursor_field = "updated"
     max_retries = 10
+    page_size = None
 
     def path(self, **kwargs) -> str:
         return "lists"
+
+    def map_record(self, record: Mapping):
+        record[self.cursor_field] = record["attributes"][self.cursor_field]
+        return record
 
 
 class GlobalExclusions(ReverseIncrementalKlaviyoStreamV1):
@@ -511,60 +517,38 @@ def process_record(record):
     return processed_record
 
 
-class Events(IncrementalKlaviyoStreamV1):
+class Events(IncrementalKlaviyoStreamLatest):
     """Docs: https://developers.klaviyo.com/en/reference/metrics-timeline"""
 
-    cursor_field = "timestamp"
+    cursor_field = "datetime"
+    page_size = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.last_next_token = None
 
-    @property
-    def look_back_window_in_seconds(self) -> Optional[int]:
-        return timedelta(minutes=30).seconds
-
     def path(self, **kwargs) -> str:
-        return "metrics/timeline"
+        return "events"
+
+    @property
+    def state_checkpoint_interval(self) -> Optional[int]:
+        return 5000
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         """:return an iterable containing each record in the response"""
 
         response_json = response.json()
         for record in response_json.get("data", []):
-            flow = record["event_properties"].get("$flow")
-            flow_message_id = record["event_properties"].get("$message")
+            attributes = record["attributes"]
+            flow = attributes.get("$flow")
+            flow_message_id = attributes.get("$message")
 
             record["flow_id"] = flow
             record["flow_message_id"] = flow_message_id
             record["campaign_id"] = flow_message_id if not flow else None
+            record[self.cursor_field] = attributes[self.cursor_field]
 
             yield process_record(record)
-
-    def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
-        super_state = super().get_updated_state(current_stream_state, latest_record)
-        super_state["last_next_token"] = self.last_next_token
-        return super_state
-
-    def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        """
-        This method should return a Mapping (e.g: dict) containing whatever information required to make paginated requests. This dict is passed
-        to most other methods in this class to help you form headers, request bodies, query params, etc..
-        :param response: the most recent response from the API
-        :return If there is another page in the result, a mapping (e.g: dict) containing information needed to query the next page in the response.
-                If there are no more pages in the result, return None.
-        """
-        decoded_response = response.json()
-        if decoded_response.get("next"):
-            next_token = decoded_response["next"]
-            self.last_next_token = next_token
-            return {"since": next_token}
-
-        self.last_next_token = None
-        data = decoded_response.get("data", [{}]) or [{}]
-        self.logger.info("Last timestamp -> " + str(data[-1].get("timestamp", "No timestamp")))
-
-        return None
 
 
 class Flows(IncrementalKlaviyoStreamLatestWithArchivedRecords):

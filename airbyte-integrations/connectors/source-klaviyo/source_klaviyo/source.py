@@ -44,7 +44,7 @@ class SourceKlaviyo(AbstractSource):
             Campaigns(api_key=api_key, start_date=start_date),
             Events(api_key=api_key, start_date=start_date),
             GlobalExclusions(api_key=api_key, start_date=start_date),
-            Lists(api_key=api_key),
+            Lists(api_key=api_key, start_date=start_date),
             Metrics(api_key=api_key),
             Flows(api_key=api_key, start_date=start_date),
             EmailTemplates(api_key=api_key),
