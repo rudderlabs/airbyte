@@ -9,7 +9,6 @@ import json
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Union
 
 import pendulum
-from datetime import timedelta
 import requests
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
@@ -23,6 +22,7 @@ class KlaviyoStreamLatest(HttpStream, ABC):
     url_base = "https://a.klaviyo.com/api/"
     primary_key = "id"
     page_size = 100
+    include = None
 
     def __init__(self, api_key: str, **kwargs):
         super().__init__(**kwargs)
@@ -66,9 +66,12 @@ class KlaviyoStreamLatest(HttpStream, ABC):
         # If next_page_token is set, all of the parameters are already provided
         if next_page_token:
             return next_page_token
-        elif self.page_size:
-            return {"page[size]": self.page_size}
-        return {}
+        params = {}
+        if self.page_size:
+            params["page[size]"] = self.page_size
+        if self.include:
+            params["include"] = self.include
+        return params
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         """:return an iterable containing each record in the response"""
@@ -471,6 +474,7 @@ class Lists(IncrementalKlaviyoStreamLatest):
     cursor_field = "updated"
     max_retries = 10
     page_size = None
+    include = "tags"
 
     def path(self, **kwargs) -> str:
         return "lists"
@@ -491,8 +495,9 @@ class GlobalExclusions(ReverseIncrementalKlaviyoStreamV1):
         return "people/exclusions"
 
 
-class Metrics(KlaviyoStreamV1):
+class Metrics(KlaviyoStreamLatest):
     """Docs: https://developers.klaviyo.com/en/reference/get-metrics"""
+    page_size = None
 
     def path(self, **kwargs) -> str:
         return "metrics"
@@ -522,6 +527,7 @@ class Events(IncrementalKlaviyoStreamLatest):
 
     cursor_field = "datetime"
     page_size = None
+    include = "attributions,metric,profile"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -554,6 +560,7 @@ class Events(IncrementalKlaviyoStreamLatest):
 class Flows(IncrementalKlaviyoStreamLatestWithArchivedRecords):
     cursor_field = "updated"
     page_size = None
+    include = "flow-actions,tags"
 
     def path(self, *args, next_page_token: Optional[Mapping[str, Any]] = None, **kwargs) -> str:
         return "flows"
