@@ -47,6 +47,6 @@ class SourceKlaviyo(AbstractSource):
             Lists(api_key=api_key, start_date=start_date),
             Metrics(api_key=api_key),
             Flows(api_key=api_key, start_date=start_date),
-            EmailTemplates(api_key=api_key),
+            EmailTemplates(api_key=api_key, start_date=start_date),
             Profiles(api_key=api_key, start_date=start_date),
         ]

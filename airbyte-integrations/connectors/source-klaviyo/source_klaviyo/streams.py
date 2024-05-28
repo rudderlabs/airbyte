@@ -174,6 +174,7 @@ class Profiles(IncrementalKlaviyoStreamLatest):
     """Docs: https://developers.klaviyo.com/en/reference/get_profiles"""
 
     cursor_field = "updated"
+    page_size = 100
 
     def path(self, *args, next_page_token: Optional[Mapping[str, Any]] = None, **kwargs) -> str:
         return "profiles"
@@ -181,6 +182,17 @@ class Profiles(IncrementalKlaviyoStreamLatest):
     def map_record(self, record: Mapping):
         record[self.cursor_field] = record["attributes"][self.cursor_field]
         return record
+
+    def request_params(
+            self,
+            stream_state: Mapping[str, Any] = None,
+            stream_slice: Optional[Mapping[str, Any]] = None,
+            next_page_token: Mapping[str, Any] = None,
+            **kwargs):
+        """Add incremental filters"""
+        params = super().request_params(stream_state, stream_slice, next_page_token)
+        params["additional-fields[profile]"] = "predictive_analytics"
+        return params
 
 
 class KlaviyoStreamV1(HttpStream, ABC):
@@ -323,7 +335,7 @@ class IncrementalKlaviyoStreamV1(KlaviyoStreamV1, ABC):
         decoded_response = response.json()
         if decoded_response.get("next"):
             return {"since": decoded_response["next"]}
-        
+
         data = decoded_response.get("data", [{}]) or [{}]
         self.logger.info("Last timestamp -> " + str(data[-1].get("timestamp", "No timestamp")))
 
@@ -484,15 +496,27 @@ class Lists(IncrementalKlaviyoStreamLatest):
         return record
 
 
-class GlobalExclusions(ReverseIncrementalKlaviyoStreamV1):
+class GlobalExclusions(Profiles):
     """Docs: https://developers.klaviyo.com/en/reference/get-global-exclusions"""
+    suppression_fields = ["attributes", "subscriptions", "email", "marketing", "suppression"]
 
-    page_size = 5000  # the maximum value allowed by API
-    cursor_field = "timestamp"
-    primary_key = "email"
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        """:return an iterable containing each record in the response"""
+        response_json = response.json()
+        for record in response_json.get("data", []):  # API returns records in a container array "data"
+            record = self.map_record(record)
+            if record:
+                yield record
 
-    def path(self, **kwargs) -> str:
-        return "people/exclusions"
+    def map_record(self, record: Mapping):
+        nested_record = record
+        for field in self.suppression_fields:
+            if field not in nested_record:
+                return None
+            nested_record = record[field]
+
+        record[self.cursor_field] = record["attributes"][self.cursor_field]
+        return record
 
 
 class Metrics(KlaviyoStreamLatest):
@@ -570,10 +594,17 @@ class Flows(IncrementalKlaviyoStreamLatestWithArchivedRecords):
         return record
 
 
-class EmailTemplates(KlaviyoStreamV1):
+class EmailTemplates(IncrementalKlaviyoStreamLatest):
     """
     Docs: https://developers.klaviyo.com/en/v1-2/reference/get-templates
     """
 
+    page_size = None
+    cursor_field = "updated"
+
+    def map_record(self, record: Mapping):
+        record[self.cursor_field] = record["attributes"][self.cursor_field]
+        return record
+
     def path(self, **kwargs) -> str:
-        return "email-templates"
+        return "templates"
