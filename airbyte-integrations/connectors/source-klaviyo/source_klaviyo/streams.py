@@ -92,6 +92,10 @@ class IncrementalKlaviyoStreamLatest(KlaviyoStreamLatest, ABC):
         super().__init__(**kwargs)
         self._start_ts = start_date
 
+    def map_record(self, record: Mapping):
+        record[self.cursor_field] = record["attributes"][self.cursor_field]
+        return record
+
     @property
     @abstractmethod
     def cursor_field(self) -> Union[str, List[str]]:
@@ -178,10 +182,6 @@ class Profiles(IncrementalKlaviyoStreamLatest):
 
     def path(self, *args, next_page_token: Optional[Mapping[str, Any]] = None, **kwargs) -> str:
         return "profiles"
-
-    def map_record(self, record: Mapping):
-        record[self.cursor_field] = record["attributes"][self.cursor_field]
-        return record
 
     def request_params(
             self,
@@ -427,10 +427,6 @@ class Campaigns(IncrementalKlaviyoStreamLatest):
     def path(self, *args, next_page_token: Optional[Mapping[str, Any]] = None, **kwargs) -> str:
         return "campaigns"
 
-    def map_record(self, record: Mapping):
-        record[self.cursor_field] = record["attributes"][self.cursor_field]
-        return record
-
     def stream_slices(
             self, *, sync_mode: SyncMode, cursor_field: Optional[List[str]] = None, stream_state: Optional[Mapping[str, Any]] = None
     ) -> Iterable[Optional[Mapping[str, Any]]]:
@@ -490,10 +486,6 @@ class Lists(IncrementalKlaviyoStreamLatest):
 
     def path(self, **kwargs) -> str:
         return "lists"
-
-    def map_record(self, record: Mapping):
-        record[self.cursor_field] = record["attributes"][self.cursor_field]
-        return record
 
 
 class GlobalExclusions(Profiles):
@@ -589,10 +581,6 @@ class Flows(IncrementalKlaviyoStreamLatestWithArchivedRecords):
     def path(self, *args, next_page_token: Optional[Mapping[str, Any]] = None, **kwargs) -> str:
         return "flows"
 
-    def map_record(self, record: Mapping):
-        record[self.cursor_field] = record["attributes"][self.cursor_field]
-        return record
-
 
 class EmailTemplates(IncrementalKlaviyoStreamLatest):
     """
@@ -602,9 +590,48 @@ class EmailTemplates(IncrementalKlaviyoStreamLatest):
     page_size = None
     cursor_field = "updated"
 
-    def map_record(self, record: Mapping):
-        record[self.cursor_field] = record["attributes"][self.cursor_field]
-        return record
-
     def path(self, **kwargs) -> str:
         return "templates"
+
+
+class Segments(IncrementalKlaviyoStreamLatest):
+    """
+    Docs: https://developers.klaviyo.com/en/v1-2/reference/get-templates
+    """
+
+    page_size = None
+    cursor_field = "updated"
+
+    def path(self, **kwargs) -> str:
+        return "segments"
+
+
+class SegmentsProfiles(KlaviyoStreamLatest):
+    parent_id: str = "id"
+    page_size = 100
+
+    def __init__(self, start_date: str, **kwargs):
+        super().__init__(**kwargs)
+        self._start_ts = start_date
+
+    def stream_slices(
+            self, *, sync_mode: SyncMode, cursor_field: Optional[List[str]] = None, stream_state: Optional[Mapping[str, Any]] = None
+    ) -> Iterable[Optional[Mapping[str, Any]]]:
+        parent_stream = Segments(api_key=self._api_key, start_date=self._start_ts)
+        slices = parent_stream.stream_slices(sync_mode=SyncMode.full_refresh)
+        for _slice in slices:
+            yield from parent_stream.read_records(sync_mode=SyncMode.full_refresh, stream_slice=_slice)
+
+    def request_params(
+            self,
+            stream_state: Mapping[str, Any] = None,
+            stream_slice: Optional[Mapping[str, Any]] = None,
+            next_page_token: Mapping[str, Any] = None,
+            **kwargs):
+        """Add incremental filters"""
+        params = super().request_params(stream_state, stream_slice, next_page_token)
+        params["additional-fields[profile]"] = "subscriptions,predictive_analytics"
+        return params
+
+    def path(self, stream_slice: Mapping[str, Any] = None, **kwargs) -> str:
+        return f"segments/{stream_slice[self.parent_id]}/profiles"
