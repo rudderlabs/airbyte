@@ -191,7 +191,7 @@ class Profiles(IncrementalKlaviyoStreamLatest):
             **kwargs):
         """Add incremental filters"""
         params = super().request_params(stream_state, stream_slice, next_page_token)
-        params["additional-fields[profile]"] = "predictive_analytics"
+        params["additional-fields[profile]"] = "predictive_analytics,subscriptions"
         return params
 
 
@@ -505,7 +505,7 @@ class GlobalExclusions(Profiles):
         for field in self.suppression_fields:
             if field not in nested_record:
                 return None
-            nested_record = record[field]
+            nested_record = nested_record[field]
 
         record[self.cursor_field] = record["attributes"][self.cursor_field]
         return record
