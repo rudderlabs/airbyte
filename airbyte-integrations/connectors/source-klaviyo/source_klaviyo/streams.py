@@ -506,6 +506,8 @@ class GlobalExclusions(Profiles):
             if field not in nested_record:
                 return None
             nested_record = nested_record[field]
+        if not nested_record:
+            return None
 
         record[self.cursor_field] = record["attributes"][self.cursor_field]
         return record
