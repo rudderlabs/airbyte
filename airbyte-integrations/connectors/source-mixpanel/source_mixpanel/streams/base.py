@@ -104,12 +104,17 @@ class MixpanelStream(HttpStream, ABC):
             return float(retry_after)
 
         self.retries += 1
-        return 2**self.retries * 60
+        return min(2**self.retries * 60, 32 * 60)
 
     def should_retry(self, response: requests.Response) -> bool:
         if response.status_code == 402:
             self.logger.warning(f"Unable to perform a request. Payment Required: {response.json()['error']}")
             return False
+        try:
+            response.json()
+        except ConnectionResetError:
+            self.logger.warning(f"Got a connection reset error. Retrying request.")
+            return True
         return super().should_retry(response)
 
     def get_stream_params(self) -> Mapping[str, Any]:
