@@ -111,7 +111,8 @@ class MixpanelStream(HttpStream, ABC):
             self.logger.warning(f"Unable to perform a request. Payment Required: {response.json()['error']}")
             return False
         try:
-            response.json()
+            if response.status_code == 200:
+                response.json()
         except ConnectionResetError:
             self.logger.warning(f"Got a connection reset error. Retrying request.")
             return True
