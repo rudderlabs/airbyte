@@ -215,3 +215,11 @@ class Engage(IncrementalMixpanelStream):
         if sync_mode == SyncMode.incremental:
             self.set_cursor(cursor_field)
         return super().stream_slices(sync_mode=sync_mode, cursor_field=cursor_field, stream_state=stream_state)
+
+    def should_retry(self, response: requests.Response) -> bool:
+        try:
+            if response.status_code == 200:
+                response.json()
+        except ConnectionResetError:
+            return True
+        return super().should_retry(response)

@@ -49,6 +49,14 @@ class Funnels(DateSlicesMixin, IncrementalMixpanelStream):
     def funnel_slices(self, sync_mode) -> List[dict]:
         return self.get_funnel_slices(sync_mode)
 
+    def should_retry(self, response: requests.Response) -> bool:
+        try:
+            if response.status_code == 200:
+                response.json()
+        except ConnectionResetError:
+            return True
+        return super().should_retry(response)
+
     def stream_slices(
         self, sync_mode, cursor_field: List[str] = None, stream_state: Mapping[str, Any] = None
     ) -> Iterable[Optional[Mapping[str, Mapping[str, Any]]]]:

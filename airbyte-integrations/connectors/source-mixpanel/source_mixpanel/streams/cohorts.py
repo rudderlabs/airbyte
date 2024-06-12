@@ -44,6 +44,14 @@ class Cohorts(IncrementalMixpanelStream):
     def path(self, **kwargs) -> str:
         return "cohorts/list"
 
+    def should_retry(self, response: requests.Response) -> bool:
+        try:
+            if response.status_code == 200:
+                response.json()
+        except ConnectionResetError:
+            return True
+        return super().should_retry(response)
+
     def parse_response(self, response: requests.Response, stream_state: Mapping[str, Any], **kwargs) -> Iterable[Mapping]:
         records = super().parse_response(response, stream_state=stream_state, **kwargs)
         for record in records:
