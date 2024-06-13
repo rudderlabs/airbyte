@@ -4,7 +4,7 @@
 
 from abc import ABC
 from datetime import timedelta
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Union
 
 import pendulum
 import requests
@@ -61,6 +61,12 @@ class MixpanelStream(HttpStream, ABC):
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> Mapping[str, Any]:
         return {"Accept": "application/json"}
+
+    def max_retries(self) -> Union[int, None]:
+        """
+        Override if needed. Specifies maximum amount of retries for backoff policy. Return None for no limit.
+        """
+        return 10
 
     def _send_request(self, request: requests.PreparedRequest, request_kwargs: Mapping[str, Any]) -> requests.Response:
         try:
