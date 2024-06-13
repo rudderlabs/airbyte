@@ -62,6 +62,7 @@ class MixpanelStream(HttpStream, ABC):
     ) -> Mapping[str, Any]:
         return {"Accept": "application/json"}
 
+    @property
     def max_retries(self) -> Union[int, None]:
         """
         Override if needed. Specifies maximum amount of retries for backoff policy. Return None for no limit.
