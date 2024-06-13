@@ -27,6 +27,14 @@ class EngageSchema(MixpanelStream):
     def path(self, **kwargs) -> str:
         return "engage/properties"
 
+    def should_retry(self, response: requests.Response) -> bool:
+        try:
+            if response.status_code == 200:
+                response.json()
+        except ConnectionResetError:
+            return True
+        return super().should_retry(response)
+
     def process_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         """
         response.json() example:
