@@ -149,7 +149,7 @@ class IncrementalKlaviyoStreamLatestWithArchivedRecords(IncrementalKlaviyoStream
             current_stream_cursor_value = current_stream_state.get("archived", {}).get(self.cursor_field, self._start_ts)
             latest_record_cursor_value = latest_record[self.cursor_field]
             latest_cursor = max(pendulum.parse(latest_record_cursor_value), pendulum.parse(current_stream_cursor_value))
-            current_stream_state["archived"] = {self.cursor_field: latest_cursor}
+            current_stream_state["archived"] = {self.cursor_field: str(latest_cursor)}
             return current_stream_state
         else:
             return super().get_updated_state(current_stream_state, latest_record)
