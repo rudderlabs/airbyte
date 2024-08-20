@@ -136,6 +136,10 @@ class AdsInsights(FBMarketingIncrementalStream):
         if job.interval.start == self._next_cursor_value:
             self._advance_cursor()
 
+        expires_at = self._api.api.get_access_token_expiration()
+        if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
+            self.logger.warning(f"Access token expires at {pendulum.from_timestamp(expires_at)}. Please reconnect the source.")
+
     @property
     def state(self) -> MutableMapping[str, Any]:
         """State getter, the result can be stored by the source"""

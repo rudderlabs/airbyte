@@ -121,6 +121,10 @@ class FBMarketingStream(Stream, ABC):
             else:
                 yield record  # execute_in_batch will emmit dicts
 
+        expires_at = self._api.api.get_access_token_expiration()
+        if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
+            self.logger.info(f"Access token expires at {pendulum.from_timestamp(expires_at)}")
+
     @abstractmethod
     def list_objects(self, params: Mapping[str, Any]) -> Iterable:
         """List FB objects, these objects will be loaded in read_records later with their details.
@@ -281,3 +285,7 @@ class FBMarketingReversedIncrementalStream(FBMarketingIncrementalStream, ABC):
             yield record.export_all_data()
 
         self._cursor_value = self._max_cursor_value
+
+        expires_at = self._api.api.get_access_token_expiration()
+        if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
+            self.logger.info(f"Access token expires at {pendulum.from_timestamp(expires_at)}")
