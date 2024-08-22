@@ -122,14 +122,6 @@ class FBMarketingStream(Stream, ABC):
             else:
                 yield record  # execute_in_batch will emmit dicts
 
-        expires_at = self._api.api.get_access_token_expiration()
-        if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
-            raise AirbyteTracedException(
-                message="Access token is about to expire, please re-authenticate",
-                internal_message="Access token is about to expire, please re-authenticate",
-                failure_type=FailureType.config_error,
-            )
-
     @abstractmethod
     def list_objects(self, params: Mapping[str, Any]) -> Iterable:
         """List FB objects, these objects will be loaded in read_records later with their details.
