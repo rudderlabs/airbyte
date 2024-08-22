@@ -8,7 +8,8 @@ from typing import Any, Iterable, List, Mapping, Optional, Set
 
 import pendulum
 import requests
-from airbyte_cdk.models import SyncMode
+from airbyte_cdk.models import SyncMode, FailureType
+from airbyte_cdk.utils import AirbyteTracedException
 from cached_property import cached_property
 from facebook_business.adobjects.adaccount import AdAccount as FBAdAccount
 from facebook_business.adobjects.adimage import AdImage
@@ -73,7 +74,11 @@ class AdCreatives(FBMarketingStream):
 
         expires_at = self._api.api.get_access_token_expiration()
         if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
-            self.logger.critical(f"Access token expires at {pendulum.from_timestamp(expires_at)}")
+            raise AirbyteTracedException(
+                message="Access token is about to expire, please re-authenticate",
+                internal_message="Access token is about to expire, please re-authenticate",
+                failure_type=FailureType.config_error,
+            )
 
     def list_objects(self, params: Mapping[str, Any]) -> Iterable:
         return self._api.account.get_ad_creatives(params=params)

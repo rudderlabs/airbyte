@@ -136,10 +136,6 @@ class AdsInsights(FBMarketingIncrementalStream):
         if job.interval.start == self._next_cursor_value:
             self._advance_cursor()
 
-        expires_at = self._api.api.get_access_token_expiration()
-        if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=57):
-            self.logger.critical(f"Access token expires at {pendulum.from_timestamp(expires_at)}. Please reconnect the source.")
-
     @property
     def state(self) -> MutableMapping[str, Any]:
         """State getter, the result can be stored by the source"""
@@ -245,6 +241,14 @@ class AdsInsights(FBMarketingIncrementalStream):
         manager = InsightAsyncJobManager(api=self._api, jobs=self._generate_async_jobs(params=self.request_params()))
         for job in manager.completed_jobs():
             yield {"insight_job": job}
+
+        expires_at = self._api.api.get_access_token_expiration()
+        if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=57):
+            raise AirbyteTracedException(
+                message="Access token is about to expire, please re-authenticate",
+                internal_message="Access token is about to expire, please re-authenticate",
+                failure_type=FailureType.config_error,
+            )
 
     def _get_start_date(self) -> pendulum.Date:
         """Get start date to begin sync with. It is not that trivial as it might seem.
