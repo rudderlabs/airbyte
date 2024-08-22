@@ -73,7 +73,7 @@ class AdCreatives(FBMarketingStream):
 
         expires_at = self._api.api.get_access_token_expiration()
         if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
-            self.logger.info(f"Access token expires at {pendulum.from_timestamp(expires_at)}")
+            self.logger.error(f"Access token expires at {pendulum.from_timestamp(expires_at)}")
 
     def list_objects(self, params: Mapping[str, Any]) -> Iterable:
         return self._api.account.get_ad_creatives(params=params)

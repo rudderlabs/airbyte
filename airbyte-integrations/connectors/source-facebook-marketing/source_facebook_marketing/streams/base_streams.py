@@ -123,7 +123,7 @@ class FBMarketingStream(Stream, ABC):
 
         expires_at = self._api.api.get_access_token_expiration()
         if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
-            self.logger.info(f"Access token expires at {pendulum.from_timestamp(expires_at)}")
+            self.logger.error(f"Access token expires at {pendulum.from_timestamp(expires_at)}")
 
     @abstractmethod
     def list_objects(self, params: Mapping[str, Any]) -> Iterable:
@@ -288,4 +288,4 @@ class FBMarketingReversedIncrementalStream(FBMarketingIncrementalStream, ABC):
 
         expires_at = self._api.api.get_access_token_expiration()
         if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
-            self.logger.info(f"Access token expires at {pendulum.from_timestamp(expires_at)}")
+            self.logger.error(f"Access token expires at {pendulum.from_timestamp(expires_at)}")
