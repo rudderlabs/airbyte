@@ -72,14 +72,6 @@ class AdCreatives(FBMarketingStream):
                     record["thumbnail_data_url"] = fetch_thumbnail_data_url(thumbnail_url)
             yield record
 
-        expires_at = self._api.api.get_access_token_expiration()
-        if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
-            raise AirbyteTracedException(
-                message="Access token is about to expire, please re-authenticate",
-                internal_message="Access token is about to expire, please re-authenticate",
-                failure_type=FailureType.config_error,
-            )
-
     def list_objects(self, params: Mapping[str, Any]) -> Iterable:
         return self._api.account.get_ad_creatives(params=params)
 
