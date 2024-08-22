@@ -8,8 +8,7 @@ from typing import Any, Iterable, List, Mapping, Optional, Set
 
 import pendulum
 import requests
-from airbyte_cdk.models import SyncMode, FailureType
-from airbyte_cdk.utils import AirbyteTracedException
+from airbyte_cdk.models import SyncMode
 from cached_property import cached_property
 from facebook_business.adobjects.adaccount import AdAccount as FBAdAccount
 from facebook_business.adobjects.adimage import AdImage
