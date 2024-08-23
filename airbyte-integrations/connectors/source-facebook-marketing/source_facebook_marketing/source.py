@@ -283,14 +283,16 @@ class SourceFacebookMarketing(AbstractSource):
             catalog: ConfiguredAirbyteCatalog,
             state: Optional[Union[List[AirbyteStateMessage], MutableMapping[str, Any]]] = None,
     ) -> Iterator[AirbyteMessage]:
-        messages = super().read(logger, config, catalog, state)
-        for message in messages:
+        # Read records from the source and emit messages
+        for message in super().read(logger, config, catalog, state):
             yield message
 
+        # Check if the access token is about to expire
+        # If it is, raise an exception to notify the user
         config = self._validate_and_transform(config)
         api = API(account_id=config.account_id, access_token=config.access_token, app_secret=config.client_secret)
         expires_at = api.api.get_access_token_expiration()
-        if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=57):
+        if expires_at and pendulum.from_timestamp(expires_at) - pendulum.now() < pendulum.duration(days=7):
             raise AirbyteTracedException(
                 message="Access token is about to expire, please re-authenticate",
                 internal_message="Access token is about to expire, please re-authenticate",
