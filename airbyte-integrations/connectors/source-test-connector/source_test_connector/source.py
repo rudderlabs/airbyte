@@ -19,6 +19,7 @@ from airbyte_cdk.models import (
     ConfiguredAirbyteCatalog,
     Status,
     Type,
+    SyncMode,
 )
 from airbyte_cdk.sources import Source
 catalog = {
@@ -78,7 +79,7 @@ class SourceTestConnector(Source):
         }
         for i in range(config.get('read', {}).get('resourcesNumber', 0)):
             streams.append(AirbyteStream(
-                name="test_resource_" + str(i), json_schema=json_schema))
+                name="test_resource_" + str(i), json_schema=json_schema, supported_sync_modes=[SyncMode.full_refresh]))
         return AirbyteCatalog(streams=streams)
 
     def read_catalog(self, catalog_path: str) -> ConfiguredAirbyteCatalog:
