@@ -61,9 +61,9 @@ class SourceTestConnector(Source):
         :return: AirbyteConnectionStatus indicating a Success or Failure
         """
         try:
-            # Not Implemented
-
-            return AirbyteConnectionStatus(status=Status.SUCCEEDED)
+            if config.get("read", {}):
+                return AirbyteConnectionStatus(status=Status.SUCCEEDED)
+            return AirbyteConnectionStatus(status=Status.FAILED, message="The configuration is not valid")
         except Exception as e:
             return AirbyteConnectionStatus(status=Status.FAILED, message=f"An exception occurred: {str(e)}")
 
