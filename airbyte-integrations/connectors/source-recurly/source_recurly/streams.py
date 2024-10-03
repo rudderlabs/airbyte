@@ -3,6 +3,7 @@
 #
 
 import re
+import time
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Union
 
 from airbyte_cdk.models import SyncMode
@@ -128,11 +129,16 @@ class BaseStream(Stream):
         if self.end_time:
             params.update({END_TIME_PARAM: self.end_time})
 
-        items = getattr(self._client, self.client_method_name)(params=params).items()
+        pages = getattr(self._client, self.client_method_name)(params=params).pages()
 
         # Call the Recurly client methods
-        for item in items:
-            yield self._item_to_dict(item)
+        for page in pages:
+            for item in page:
+                yield self._item_to_dict(item)
+            # slow down the API calls to avoid rate limiting
+            # https://recurly.com/developers/api-v2/v2.2/#section/Rate-Limits
+            # making 5 API calls per second / 300 API calls per minute / 1500 API calls per 5 minutes
+            time.sleep(0.2)
 
     def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]):
         """
