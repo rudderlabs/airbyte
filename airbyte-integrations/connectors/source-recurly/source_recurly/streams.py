@@ -211,9 +211,12 @@ class BaseAccountResourceStream(BaseStream):
         # and log a warn
         try:
             for account in accounts:
-                items = getattr(self._client, self.client_method_name)(params=params, account_id=account.id).items()
-                for item in items:
-                    yield self._item_to_dict(item)
+                pages = getattr(self._client, self.client_method_name)(params=params, account_id=account.id).pages()
+                for page in pages:
+                    for item in page:
+                        yield self._item_to_dict(item)
+                    # slow down the API calls to avoid rate limiting
+                    time.sleep(0.2)
         except MissingFeatureError as error:
             super().logger.warning(f"Missing feature error {error}")
 
@@ -336,8 +339,10 @@ class UniqueCoupons(BaseStream):
 
         for coupon in coupons:
             try:
-                items = self._client.list_unique_coupon_codes(params=params, coupon_id=coupon.id).items()
-                for item in items:
+                page = self._client.list_unique_coupon_codes(params=params, coupon_id=coupon.id).pages()
+                for item in page:
                     yield self._item_to_dict(item)
+                # slow down the API calls to avoid rate limiting
+                time.sleep(0.2)
             except (NotFoundError, ValidationError):
                 pass
