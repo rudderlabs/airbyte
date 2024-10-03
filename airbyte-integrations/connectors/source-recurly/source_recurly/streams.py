@@ -340,8 +340,8 @@ class UniqueCoupons(BaseStream):
 
         for coupon in coupons:
             try:
-                page = self._client.list_unique_coupon_codes(params=params, coupon_id=coupon.id).pages()
-                for item in page:
+                pages = self._client.list_unique_coupon_codes(params=params, coupon_id=coupon.id).pages()
+                for item in pages:
                     yield self._item_to_dict(item)
                 # slow down the API calls to avoid rate limiting
                 time.sleep(RATE_LIMIT_SLEEP_IN_SECS)
