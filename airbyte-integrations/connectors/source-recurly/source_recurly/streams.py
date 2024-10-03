@@ -138,7 +138,6 @@ class BaseStream(Stream):
                 yield self._item_to_dict(item)
             # slow down the API calls to avoid rate limiting
             # https://recurly.com/developers/api-v2/v2.2/#section/Rate-Limits
-            # making 5 API calls per second / 300 API calls per minute / 1500 API calls per 5 minutes
             time.sleep(RATE_LIMIT_SLEEP_IN_SECS)
 
     def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]):
