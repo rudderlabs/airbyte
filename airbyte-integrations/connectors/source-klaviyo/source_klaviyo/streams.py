@@ -589,14 +589,13 @@ class Events(IncrementalKlaviyoStreamLatest):
             record["flow_id"] = flow
             record["flow_message_id"] = flow_message_id
             record["campaign_id"] = flow_message_id if not flow else None
-            record[self.cursor_field] = attributes[self.cursor_field]
             profiles_data = record.get("relationships", {}).get("profile", {}).get("data", None)
             if profiles_data:
                 profile_id = profiles_data.get("id", None)
                 if profile_id and profile_id in profile_cache:
                     profile = profile_cache.get(profile_id)
                     record["profile_email"] = profile.get("attributes", {}).get("email", None)
-
+            self.map_record(record)
             yield process_record(record)
 
 
