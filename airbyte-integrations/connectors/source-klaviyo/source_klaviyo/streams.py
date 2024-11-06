@@ -488,7 +488,9 @@ class Campaigns(IncrementalKlaviyoStreamLatest):
                 campaign_message_id = campaign_message.get("id", None)
                 if campaign_message_id and campaign_message_id in campaign_message_cache:
                     message = campaign_message_cache.get(campaign_message_id)
-                    record[f"from_email_{idx}"] = message.get("attributes", {}).get("content", {}).get("from_email", None)
+                    from_email = message.get("attributes", {}).get("content", {}).get("from_email", None)
+                    if from_email:
+                        record[f"from_email_{idx}"] = from_email
 
             record = self.map_record(record)
             yield record
@@ -594,7 +596,9 @@ class Events(IncrementalKlaviyoStreamLatest):
                 profile_id = profiles_data.get("id", None)
                 if profile_id and profile_id in profile_cache:
                     profile = profile_cache.get(profile_id)
-                    record["profile_email"] = profile.get("attributes", {}).get("email", None)
+                    profile_email = profile.get("attributes", {}).get("email", None)
+                    if profile_email:
+                        record["profile_email"] = profile_email
             self.map_record(record)
             yield process_record(record)
 
