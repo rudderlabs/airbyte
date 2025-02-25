@@ -133,6 +133,7 @@ UNSUPPORTED_BULK_API_SALESFORCE_OBJECTS = [
     "AssetTokenEvent",
     "Attachment",
     "AttachedContentNote",
+    "Case",
     "CaseStatus",
     "ContractStatus",
     "DeclinedEventRelation",
