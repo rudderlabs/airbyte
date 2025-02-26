@@ -134,6 +134,7 @@ UNSUPPORTED_BULK_API_SALESFORCE_OBJECTS = [
     "Attachment",
     "AttachedContentNote",
     "Case",
+    "CaseComment",
     "CaseStatus",
     "ContractStatus",
     "DeclinedEventRelation",
@@ -179,6 +180,7 @@ UNSUPPORTED_BULK_API_SALESFORCE_OBJECTS = [
     "AccountFeed",
     "AssetFeed",
     "WorkStepStatus",
+    "EmailMessage"
 ]
 
 UNSUPPORTED_FILTERING_STREAMS = [
