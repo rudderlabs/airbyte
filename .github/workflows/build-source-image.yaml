@@ -255,7 +255,7 @@ jobs:
       - name: Get previous tag
         if: ${{ github.event.inputs.customtag == '' }}
         id: current_tag
-        uses: "debanjan97/github-action-get-previous-tag@v1.0.0"
+        uses: "debanjan97/github-action-get-previous-tag@e7bc0c9444417338112f6746bf27ddc48029534e"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         with:
@@ -291,7 +291,7 @@ jobs:
       - name: Calculate Next Versions
         if: ${{ steps.bump.outputs.required == 'true' }}
         id: calculatenextversion
-        uses: "WyriHaximus/github-action-next-semvers@v1"
+        uses: "WyriHaximus/github-action-next-semvers@b135abb108d66990a85e18623d906404f4350ce4"
         with:
           version: ${{ steps.current_tag.outputs.tag }}
       
@@ -332,7 +332,7 @@ jobs:
           fi;
           echo "tag=$tag" >> $GITHUB_OUTPUT
       
-      - uses: mukunku/tag-exists-action@v1.2.0
+      - uses: mukunku/tag-exists-action@9298fbcc409758ba624a0ae16b83df86637cb8ce
         name: Check if the generated tag exists
         id: checkTag
         with: 
