@@ -18,7 +18,7 @@ from cached_property import cached_property
 from facebook_business.adobjects.abstractobject import AbstractObject
 from facebook_business.api import FacebookAdsApiBatch, FacebookRequest, FacebookResponse
 
-from .common import deep_merge
+from .common import deep_merge, FACEBOOK_RATE_LIMIT_ERROR_CODES
 
 if TYPE_CHECKING:  # pragma: no cover
     from source_facebook_marketing.api import API
@@ -27,6 +27,7 @@ logger = logging.getLogger("airbyte")
 
 FACEBOOK_BATCH_ERROR_CODE = 960
 
+RETRY_ERROR_CODES = FACEBOOK_RATE_LIMIT_ERROR_CODES + (FACEBOOK_BATCH_ERROR_CODE,)
 
 class FBMarketingStream(Stream, ABC):
     """Base stream class"""
@@ -78,7 +79,8 @@ class FBMarketingStream(Stream, ABC):
             # although it is Optional in the signature for compatibility, we need it always
             assert request, "Missing a request object"
             resp_body = response.json()
-            if not isinstance(resp_body, dict) or resp_body.get("error", {}).get("code") != FACEBOOK_BATCH_ERROR_CODE:
+            if not isinstance(resp_body, dict) \
+                    or resp_body.get("error", {}).get("code") not in RETRY_ERROR_CODES:
                 # response body is not a json object or the error code is different
                 raise RuntimeError(f"Batch request failed with response: {resp_body}")
             requests_q.put(request)
