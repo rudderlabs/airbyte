@@ -50,6 +50,7 @@ class MyFacebookAdsApi(FacebookAdsApi):
     _ads_insights_throttle: Throttle
     _access_token = None
     _app_secret = None
+    _app_id = None
 
     @property
     def ads_insights_throttle(self) -> Throttle:
@@ -102,6 +103,11 @@ class MyFacebookAdsApi(FacebookAdsApi):
     @classmethod
     def set_app_secret(cls, app_secret):
         cls._app_secret = app_secret
+
+    @classmethod
+    def set_app_id(cls, app_id):
+        cls._app_id = app_id
+
     @classmethod
     def reset_session(cls):
         logger.info("resetting session after sleep")
@@ -197,7 +203,10 @@ class MyFacebookAdsApi(FacebookAdsApi):
     def get_access_token_expiration(self) -> Optional[int]:
         """Get access token expiration time"""
         try:
-            response = self.call("GET", "https://graph.facebook.com/debug_token", params={"input_token": MyFacebookAdsApi._access_token})
+            response = self.call("GET", "https://graph.facebook.com/debug_token", params={
+                "input_token": MyFacebookAdsApi._access_token,
+                "access_token": f"{MyFacebookAdsApi._app_id}|{MyFacebookAdsApi._app_secret}"
+            })
             response_body = response.json()
             return response_body.get("data", {}).get("expires_at", None)
         except FacebookRequestError:
@@ -209,13 +218,15 @@ class MyFacebookAdsApi(FacebookAdsApi):
 class API:
     """Simple wrapper around Facebook API"""
 
-    def __init__(self, account_id: str, access_token: str, app_secret: str = None):
+    def __init__(self, account_id: str, access_token: str, app_secret: str = None, app_id: Optional[str] = None):
         self._account_id = account_id
         # design flaw in MyFacebookAdsApi requires such strange set of new default api instance
         self.api = MyFacebookAdsApi.init(access_token=access_token, app_secret=app_secret, crash_log=False)
         MyFacebookAdsApi.set_access_token(access_token)
         if app_secret:
             MyFacebookAdsApi.set_app_secret(app_secret=app_secret)
+        if app_id:
+            self.api.set_app_id(app_id)
         FacebookAdsApi.set_default_api(self.api)
 
     @cached_property
