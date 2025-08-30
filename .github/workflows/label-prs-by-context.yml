@@ -4,7 +4,8 @@ name: "Add labels to github PRs based on context"
 on:
   pull_request_target:
     types: [opened, labeled, unlabeled, ready_for_review, synchronize, reopened]
-
+permissions:
+  contents: read
 jobs:
   shared-pr-labeller:
     name: "Add Labels to PRs.  Safe to Merge on fail"
