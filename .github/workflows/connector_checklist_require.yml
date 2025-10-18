@@ -11,8 +11,13 @@ jobs:
     name: Require Connector Merge Checklist Job
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Ensure All Checklist Checked
-        uses: mheap/require-checklist-action@v2
+        uses: mheap/require-checklist-action@46d2ca1a0f90144bd081fd13a80b1dc581759365 # v2.5.0
         with:
           requireChecklist: false # TODO (ben) reenable in one week once pull request templates have been updated
       - name: Send Error Message

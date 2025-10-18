@@ -8,7 +8,12 @@ jobs:
     name: "Report affected connectors"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
         with:
           fetch-depth: 0 # OR "2" -> To retrieve the preceding commit.
       - name: Extract git-diff changed files
@@ -27,7 +32,7 @@ jobs:
       - name: Find existing comment for connector dependencies
         # Always run this step because the action may need to
         # remove a comment created from a previous commit.
-        uses: peter-evans/find-comment@v2
+        uses: peter-evans/find-comment@a54c31d7fa095754bfef525c0c8e5e5674c4b4b1 # v2.4.0
         id: find_comment
         with:
           issue-number: ${{ github.event.pull_request.number }}
@@ -35,7 +40,7 @@ jobs:
           body-includes: "report-connectors-dependency.yml"
       - name: Comment report in PR
         if: steps.dependency_report.outputs.comment == 'true'
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@67dcc547d311b736a8e6c5c236542148a47adc3d # v2.1.1
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id }}
@@ -43,7 +48,7 @@ jobs:
           body-file: "comment_body.md"
       - name: Remove deprecated report in PR
         if: steps.dependency_report.outputs.comment != 'true' && steps.find_comment.outputs.comment-id != ''
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@67dcc547d311b736a8e6c5c236542148a47adc3d # v2.1.1
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.find_comment.outputs.comment-id }}

@@ -8,8 +8,13 @@ jobs:
     name: "Add Labels to Issues.  Safe to Merge on fail"
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Run Issue Command from workflow-actions
-        uses: nick-fields/private-action-loader@v3
+        uses: nick-fields/private-action-loader@6fa713597d3de3707f8b7a3029a5c262f32c5bca # v3.0.12
         with:
           pal-repo-token: "${{ secrets.GH_PAT_MAINTENANCE_OCTAVIA }}"
           pal-repo-name: airbytehq/workflow-actions@production

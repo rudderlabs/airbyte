@@ -10,8 +10,13 @@ jobs:
     name: "Fire a Repo Dispatch event to airbyte-cloud"
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@bf47d102fdb849e755b0b0023ea3e81a44b6f570 # v2.1.2
         with:
           token: ${{ secrets.GH_PAT_MAINTENANCE_OCTAVIA }}
           repository: airbytehq/airbyte-cloud
