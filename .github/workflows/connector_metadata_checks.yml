@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "airbyte-integrations/connectors/source-**"
+permissions:
+  contents: read
+
 jobs:
   connector-metadata-checks:
     name: "Check Connector Metadata"

@@ -2,8 +2,14 @@ name: Approve and Merge Command Dispatch
 on:
   issue_comment:
     types: [created]
+permissions:
+  contents: read
+
 jobs:
   approveAndMergeDispatch:
+    permissions:
+      issues: write  # for peter-evans/create-or-update-comment to create or update comment
+      pull-requests: write  # for peter-evans/slash-command-dispatch to create PR reaction
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)

@@ -2,9 +2,15 @@ name: Slash Command Dispatch
 on:
   issue_comment:
     types: [created]
+permissions:
+  contents: read
+
 jobs:
   slashCommandDispatch:
     # Only allow slash commands on pull request (not on issues)
+    permissions:
+      issues: write  # for peter-evans/slash-command-dispatch to create issue reaction
+      pull-requests: write  # for peter-evans/slash-command-dispatch to create PR reaction
     if: ${{ github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     steps:

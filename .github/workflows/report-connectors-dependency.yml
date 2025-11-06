@@ -3,8 +3,15 @@ name: Report connectors dependency
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   report-affected-connectors:
+    permissions:
+      contents: read  # for actions/checkout to fetch code
+      issues: write  # for peter-evans/create-or-update-comment to create or update comment
+      pull-requests: write  # for peter-evans/create-or-update-comment to create or update comment
     name: "Report affected connectors"
     runs-on: ubuntu-latest
     steps:
