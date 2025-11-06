@@ -23,8 +23,13 @@ jobs:
     timeout-minutes: 1440 # 24 hours
     runs-on: ${{ inputs.runner || 'conn-prod-xlarge-runner'}}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       - name: Extract branch name [WORKFLOW DISPATCH]
         shell: bash
         if: github.event_name == 'workflow_dispatch'
@@ -52,7 +57,7 @@ jobs:
         run: echo "commit_id=$(git rev-parse origin/${{ steps.extract_branch.outputs.branch }})" >> $GITHUB_OUTPUT
       - name: Pull formatting changes [PULL REQUESTS]
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
         with:
           repository: ${{ github.event.inputs.repo }}
           ref: ${{ steps.fetch_last_commit_id_pr.outputs.commit_id }}

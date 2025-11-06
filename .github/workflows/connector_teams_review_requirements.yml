@@ -14,12 +14,17 @@ jobs:
 
     if: ${{ github.repository == 'airbytehq/airbyte' }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
         with:
           fetch-depth: 0
       - name: Install Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
         with:
           python-version: "3.9"
       - name: Install ci-connector-ops package
@@ -32,7 +37,7 @@ jobs:
         run: print-mandatory-reviewers >> $GITHUB_OUTPUT
       - name: Check if the review requirements are met
         if: steps.write-review-requirements-file.outputs.CREATED_REQUIREMENTS_FILE == 'true'
-        uses: Automattic/action-required-review@v3
+        uses: Automattic/action-required-review@81ca11e65a65c85c82833bbbfcbadb2874d0b135 # v3.1.0
         with:
           status: ${{ steps.get-mandatory-reviewers.outputs.MANDATORY_REVIEWERS  }}
           token: ${{ secrets.OCTAVIA_4_ROOT_ACCESS }}

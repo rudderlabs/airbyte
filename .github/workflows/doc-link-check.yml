@@ -13,9 +13,14 @@ jobs:
     timeout-minutes: 50
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089 # master
       # check all files on master
-      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+      - uses: gaurav-nelson/github-action-markdown-link-check@5c5dfc0ac2e225883c0e5f03a85311ec2830d368 # v1
         with:
           use-quiet-mode: 'yes'
           check-modified-files-only: 'no'

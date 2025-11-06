@@ -45,9 +45,14 @@ jobs:
       db: ${{ steps.filter.outputs.db }}
       any_change: ${{ steps.filter.outputs.any_change }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
-      - uses: dorny/paths-filter@v2
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+      - uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         id: filter
         with:
           # Note: The following glob expression within a filters are ORs.
@@ -82,7 +87,7 @@ jobs:
   #    needs: changes
   #    runs-on: ubuntu-latest
   #    steps:
-  #      - uses: actions/checkout@v3
+  #      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
   #      - run: |
   #          echo '${{ toJSON(needs) }}'
 
@@ -95,8 +100,13 @@ jobs:
     name: "Octavia CLI: Build"
     timeout-minutes: 90
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
         with:
           ref: ${{ github.head_ref }}
 
@@ -106,12 +116,12 @@ jobs:
       #     cache-key: ${{ secrets.CACHE_VERSION }}
       #     cache-python: "false"
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # v3.14.1
         with:
           distribution: "zulu"
           java-version: "17"
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
         with:
           python-version: "3.9"
           token: ${{ secrets.GH_PAT_MAINTENANCE_OCTAVIA }}
@@ -131,7 +141,7 @@ jobs:
           EOF
 
       - name: Format
-        uses: Wandalen/wretry.action@v1.0.42
+        uses: Wandalen/wretry.action@acfb3856afd0eb79066e849ac472e6fd41c1f0fd # v1.0.42
         with:
           command: SUB_BUILD=OCTAVIA_CLI ./gradlew format --scan --info --stacktrace
           attempt_limit: 3
@@ -141,14 +151,14 @@ jobs:
         run: ./tools/bin/check_for_file_changes
 
       - name: Build
-        uses: Wandalen/wretry.action@v1.0.42
+        uses: Wandalen/wretry.action@acfb3856afd0eb79066e849ac472e6fd41c1f0fd # v1.0.42
         with:
           command: SUB_BUILD=OCTAVIA_CLI ./gradlew :octavia-cli:build javadoc --scan
           attempt_limit: 3
           attempt_delay: 5000 # in ms
 
       - name: Run integration tests
-        uses: Wandalen/wretry.action@v1.0.42
+        uses: Wandalen/wretry.action@acfb3856afd0eb79066e849ac472e6fd41c1f0fd # v1.0.42
         with:
           command: ./tools/bin/integration_tests_octavia.sh
           attempt_limit: 3
@@ -162,20 +172,25 @@ jobs:
     name: "Airbyte CDK: Build"
     timeout-minutes: 90
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - name: Cache Build Artifacts
         uses: ./.github/actions/cache-build-artifacts
         with:
           cache-key: ${{ secrets.CACHE_VERSION }}-cdk
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # v3.14.1
         with:
           distribution: "zulu"
           java-version: "17"
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
         with:
           python-version: "3.9"
 
@@ -194,21 +209,21 @@ jobs:
           EOF
 
       - name: Format
-        uses: Wandalen/wretry.action@v1.0.42
+        uses: Wandalen/wretry.action@acfb3856afd0eb79066e849ac472e6fd41c1f0fd # v1.0.42
         with:
           command: SUB_BUILD=CDK ./gradlew format --scan --info --stacktrace
           attempt_limit: 3
           attempt_delay: 5000 # in ms
 
       - name: Commit Formatting Changes
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
         with:
           commit_message: Automated Commit - Formatting Changes
           commit_user_name: Octavia Squidington III
           commit_user_email: octavia-squidington-iii@users.noreply.github.com
 
       - name: Build
-        uses: Wandalen/wretry.action@v1.0.42
+        uses: Wandalen/wretry.action@acfb3856afd0eb79066e849ac472e6fd41c1f0fd # v1.0.42
         with:
           command: SUB_BUILD=CDK ./gradlew build --scan
           attempt_limit: 3
@@ -229,8 +244,13 @@ jobs:
       label: ${{ steps.start-ec2-runner.outputs.label }}
       ec2-instance-id: ${{ steps.start-ec2-runner.outputs.ec2-instance-id }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       - name: Check PAT rate limits
         run: |
           ./tools/bin/find_non_rate_limited_PAT \
@@ -251,8 +271,13 @@ jobs:
     name: "Connectors Base: Build"
     timeout-minutes: 90
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
         with:
           ref: ${{ github.head_ref }}
 
@@ -261,16 +286,16 @@ jobs:
       #   with:
       #     cache-key: ${{ secrets.CACHE_VERSION }}-connectors-gradle-build
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # v3.14.1
         with:
           distribution: "zulu"
           java-version: "17"
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3.9.1
         with:
           node-version: "lts/*"
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
         with:
           python-version: "3.9"
 
@@ -295,7 +320,7 @@ jobs:
           EOF
 
       - name: Generate Template scaffold
-        uses: Wandalen/wretry.action@v1.0.42
+        uses: Wandalen/wretry.action@acfb3856afd0eb79066e849ac472e6fd41c1f0fd # v1.0.42
         with:
           command: ./gradlew :airbyte-integrations:connector-templates:generator:testScaffoldTemplates --scan
           attempt_limit: 3
@@ -306,21 +331,21 @@ jobs:
         run: git --no-pager diff && test -z "$(git --no-pager diff)"
 
       - name: Format
-        uses: Wandalen/wretry.action@v1.0.42
+        uses: Wandalen/wretry.action@acfb3856afd0eb79066e849ac472e6fd41c1f0fd # v1.0.42
         with:
           command: SUB_BUILD=CONNECTORS_BASE ./gradlew format --scan --info --stacktrace
           attempt_limit: 3
           attempt_delay: 5000 # in ms
 
       - name: Build
-        uses: Wandalen/wretry.action@v1.0.42
+        uses: Wandalen/wretry.action@acfb3856afd0eb79066e849ac472e6fd41c1f0fd # v1.0.42
         with:
           command: SUB_BUILD=CONNECTORS_BASE ./gradlew build --scan
           attempt_limit: 3
           attempt_delay: 5000 # in ms
 
       - name: Process Resources
-        uses: Wandalen/wretry.action@v1.0.42
+        uses: Wandalen/wretry.action@acfb3856afd0eb79066e849ac472e6fd41c1f0fd # v1.0.42
         with:
           command: SUB_BUILD=CONNECTORS_BASE ./gradlew :airbyte-config-oss:init-oss:processResources --scan
           attempt_limit: 3
@@ -331,14 +356,14 @@ jobs:
         run: git ls-files -i -c --exclude-from=.gitignore | xargs -r git rm --cached
 
       - name: Commit Changes
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
         with:
           commit_message: Automated Commit - Format and Process Resources Changes
           commit_user_name: Octavia Squidington III
           commit_user_email: octavia-squidington-iii@users.noreply.github.com
 
       - name: Publish Connectors Base Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@3a74b2957438d0b6e2e61d67b05318aa25c9e6c6 # v2.20.0
         id: connectors-test-results
         if: always()
         with:
@@ -350,7 +375,7 @@ jobs:
 
       - name: Setup Google Cloud SDK
         if: always()
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@20c93dacc1d70ddbce76c63ab32c35595345bdd1 # v0.7.0
         with:
           service_account_key: ${{ secrets.GKE_TEST_SA_KEY }}
           export_default_credentials: true
@@ -369,7 +394,7 @@ jobs:
           gsutil -h "Cache-Control:public" cp connectors_base_results.jsonl "gs://$gcs_bucket_name/oss/$filename.jsonl"
 
       - name: Generate Test Report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@d61b558e8df85cb60d09ca3e5b09653b4477cea7 # v1
         if: always()
         with:
           name: Connectors Base Test Report
@@ -390,21 +415,26 @@ jobs:
     # Thus, we check for skipped here.
     if: ${{ always() && needs.start-connectors-base-build-runner.result != 'skipped'}}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@67fbcbb121271f7775d2e7715933280b06314838 # v1.7.0
         with:
           aws-access-key-id: ${{ secrets.SELF_RUNNER_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.SELF_RUNNER_AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       - name: Check PAT rate limits
         run: |
           ./tools/bin/find_non_rate_limited_PAT \
             ${{ secrets.GH_PAT_BUILD_RUNNER_OSS }} \
             ${{ secrets.GH_PAT_BUILD_RUNNER_BACKUP }}
       - name: Stop EC2 runner
-        uses: supertopher/ec2-github-runner@base64v1.0.10
+        uses: supertopher/ec2-github-runner@0a62b16b7a86a45725a1755884f8cee7a5068ad8 # base64v1.0.10
         with:
           mode: stop
           github-token: ${{ env.PAT }}
@@ -419,8 +449,13 @@ jobs:
       - octavia-cli-build
     if: ${{ failure() && github.ref == 'refs/heads/master' }}
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       - name: Match GitHub User to Slack User
         id: match-github-to-slack-user
         uses: ./.github/actions/match-github-to-slack-user
@@ -449,8 +484,13 @@ jobs:
       - octavia-cli-build
     if: success()
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Get Previous Workflow Status
-        uses: Mercymeilya/last-workflow-status@v0.3
+        uses: Mercymeilya/last-workflow-status@040f64adf6b3514a99a3ce92c48cef9c5aea6caf # v0.3
         id: last_status
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

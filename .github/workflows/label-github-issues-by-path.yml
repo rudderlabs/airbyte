@@ -11,8 +11,13 @@ jobs:
     name: "Label PRs based on files changes"
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: "Label PR based on changed files"
-        uses: actions/labeler@v3
+        uses: actions/labeler@3d612d72e6784a1a65365cc6d33b5a001c12bf10 # v3.1.0
         with:
           repo-token: "${{ secrets.GH_PAT_MAINTENANCE_OCTAVIA }}"
           sync-labels: true

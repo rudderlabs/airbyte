@@ -35,9 +35,14 @@ jobs:
     if: github.event.inputs.comment-id
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Print deprecation message
         if: github.event.inputs.comment-id
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@a35cf36e5301d70b76f316e867e7788a55a31dae # v1.4.5
         with:
           comment-id: ${{ github.event.inputs.comment-id }}
           body: |

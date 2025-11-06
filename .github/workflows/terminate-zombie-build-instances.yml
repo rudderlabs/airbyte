@@ -13,6 +13,11 @@ jobs:
   terminate:
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: List and Terminate Instances Older Than 4 Hours
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.SELF_RUNNER_AWS_ACCESS_KEY_ID }}
@@ -40,8 +45,13 @@ jobs:
   terminate-github-instances:
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
       - name: Checkout Airbyte
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       - name: List and Terminate GH actions in status 'offline'
         env:
           GITHUB_PAT: ${{ secrets.GH_PAT_MAINTENANCE_OCTAVIA }}
