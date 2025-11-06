@@ -7,8 +7,13 @@ on:
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+permissions:
+  contents: read
+
 jobs:
   assign_one_project:
+    permissions:
+      repository-projects: write  # for srggrs/assign-one-project-github-action to assign issues and PRs to repo project
     runs-on: ubuntu-latest
     name: Assign to Airbyte Github Project
     steps:

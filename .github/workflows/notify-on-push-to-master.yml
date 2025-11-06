@@ -5,6 +5,9 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   repo-sync:
     name: "Fire a Repo Dispatch event to airbyte-cloud"
