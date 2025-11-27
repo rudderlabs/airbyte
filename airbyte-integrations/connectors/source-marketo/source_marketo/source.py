@@ -532,8 +532,8 @@ class MarketoAuthenticator(Oauth2Authenticator):
     def get_refresh_request_params(self) -> Mapping[str, Any]:
         payload: MutableMapping[str, Any] = {
             "grant_type": "client_credentials",
-            "client_id": self.client_id,
-            "client_secret": self.client_secret,
+            "client_id": self.get_client_id(),
+            "client_secret": self.get_client_secret(),
         }
 
         return payload
@@ -543,10 +543,10 @@ class MarketoAuthenticator(Oauth2Authenticator):
         Returns a tuple of (access_token, token_lifespan_in_seconds)
         """
         try:
-            response = requests.request(method="GET", url=self.token_refresh_endpoint, params=self.get_refresh_request_params())
+            response = requests.request(method="GET", url=self.get_token_refresh_endpoint(), params=self.get_refresh_request_params())
             response.raise_for_status()
             response_json = response.json()
-            return response_json["access_token"], response_json["expires_in"]
+            return response_json[self.get_access_token_name()], response_json[self.get_expires_in_name()]
         except Exception as e:
             raise Exception(f"Error while refreshing access token: {e}") from e
 
