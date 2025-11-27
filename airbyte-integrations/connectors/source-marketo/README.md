@@ -77,6 +77,9 @@ docker run --rm -v $(pwd)/secrets:/secrets airbyte/source-marketo:dev check --co
 docker run --rm -v $(pwd)/secrets:/secrets airbyte/source-marketo:dev discover --config /secrets/config.json
 docker run --rm -v $(pwd)/secrets:/secrets -v $(pwd)/integration_tests:/integration_tests airbyte/source-marketo:dev read --config /secrets/config.json --catalog /integration_tests/configured_catalog.json
 ```
+
+**Note:** The Dockerfile uses Debian-based Python (`python:3.9.11-slim`) instead of Alpine Linux for better stability and compatibility with Python native extensions. This resolves segmentation fault issues that can occur with Alpine Linux in both local development (Apple Silicon) and Kubernetes environments.
+
 ## Testing
 Make sure to familiarize yourself with [pytest test discovery](https://docs.pytest.org/en/latest/goodpractices.html#test-discovery) to know how your test files and methods should be named.
 First install test dependencies into your virtual environment:
