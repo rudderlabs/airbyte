@@ -5,9 +5,6 @@
     "company": {
       "type": ["string", "null"]
     },
-    "site": {
-      "type": ["string", "null"]
-    },
     "billingStreet": {
       "type": ["string", "null"]
     },
@@ -56,9 +53,6 @@
     "personType": {
       "type": ["string", "null"]
     },
-    "mktoIsPartner": {
-      "type": ["boolean", "null"]
-    },
     "isLead": {
       "type": ["boolean", "null"]
     },
@@ -74,9 +68,6 @@
     "firstName": {
       "type": ["string", "null"]
     },
-    "middleName": {
-      "type": ["string", "null"]
-    },
     "lastName": {
       "type": ["string", "null"]
     },
@@ -89,18 +80,11 @@
     "mobilePhone": {
       "type": ["string", "null"]
     },
-    "fax": {
-      "type": ["string", "null"]
-    },
     "title": {
       "type": ["string", "null"]
     },
     "contactCompany": {
       "type": ["string", "null"]
-    },
-    "dateOfBirth": {
-      "type": ["string", "null"],
-      "format": "date-time"
     },
     "address": {
       "type": ["string", "null"]
@@ -115,9 +99,6 @@
       "type": ["string", "null"]
     },
     "postalCode": {
-      "type": ["string", "null"]
-    },
-    "personTimeZone": {
       "type": ["string", "null"]
     },
     "originalSourceType": {
@@ -144,9 +125,6 @@
     "emailInvalid": {
       "type": ["boolean", "null"]
     },
-    "emailInvalidCause": {
-      "type": ["string", "null"]
-    },
     "unsubscribed": {
       "type": ["boolean", "null"]
     },
@@ -159,9 +137,6 @@
     "mktoDoNotCallCause": {
       "type": ["string", "null"]
     },
-    "doNotCallReason": {
-      "type": ["string", "null"]
-    },
     "marketingSuspended": {
       "type": ["boolean", "null"]
     },
@@ -172,9 +147,6 @@
       "type": ["boolean", "null"]
     },
     "blackListedCause": {
-      "type": ["string", "null"]
-    },
-    "mktoPersonNotes": {
       "type": ["string", "null"]
     },
     "anonymousIP": {
@@ -211,9 +183,6 @@
       "type": ["string", "null"],
       "format": "date-time"
     },
-    "department": {
-      "type": ["string", "null"]
-    },
     "createdAt": {
       "type": ["string", "null"],
       "format": "date-time"
@@ -229,9 +198,6 @@
       "type": ["string", "null"]
     },
     "leadPerson": {
-      "type": ["string", "null"]
-    },
-    "leadRole": {
       "type": ["string", "null"]
     },
     "leadSource": {
@@ -254,9 +220,6 @@
     },
     "relativeUrgency": {
       "type": ["integer", "null"]
-    },
-    "rating": {
-      "type": ["string", "null"]
     },
     "personPrimaryLeadInterest": {
       "type": ["string", "null"]
