@@ -27,12 +27,12 @@ runs:
   using: "composite"
   steps:
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
       with:
         python-version: 3.9
 
     - name: Install Java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@17f84c3641ba7b8f6deff6309fc4c864478f5d62 # v3.14.1
       with:
         distribution: "zulu"
         java-version: "17"
@@ -47,7 +47,7 @@ runs:
         echo "::echo::off"
 
     - name: Auth with gcloud CLI
-      uses: google-github-actions/setup-gcloud@v0
+      uses: google-github-actions/setup-gcloud@20c93dacc1d70ddbce76c63ab32c35595345bdd1 # v0.7.0
       with:
         service_account_key: ${{ inputs.sonar-gcp-access-key }}
         project_id: dataline-integration-testing
@@ -140,7 +140,7 @@ runs:
 
     - name: SonarQube Scan
 
-      uses: sonarsource/sonarqube-scan-action@master
+      uses: sonarsource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # master
       env:
         SONAR_TOKEN: ${{ inputs.sonar-token }}
         SONAR_HOST_URL: ${{ steps.gcloud-tunnel.outputs.sonar-host }}
@@ -173,7 +173,7 @@ runs:
 
     - name: Add Comment
       if: ${{ github.event_name == 'pull_request' }}
-      uses: peter-evans/commit-comment@v1
+      uses: peter-evans/commit-comment@024efe46f6e45f651301d75870c4bd8fbe17cbc8 # v1.3.2
       with:
         body: ${{ steps.generate-sq-report.outputs.sq-report }}
         token: ${{ inputs.token }}
