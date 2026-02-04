@@ -19,8 +19,10 @@ jobs:
           egress-policy: audit
 
       - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@bf47d102fdb849e755b0b0023ea3e81a44b6f570 # v2.1.2
+        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3.0.0
         with:
+          # PAT required: target repository airbytehq/airbyte-cloud is in external org (airbytehq)
+          # GitHub App tokens only work within the organization where the App is installed
           token: ${{ secrets.GH_PAT_MAINTENANCE_OCTAVIA }}
           repository: airbytehq/airbyte-cloud
           event-type: oss-push-to-master
