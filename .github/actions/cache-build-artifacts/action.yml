@@ -10,7 +10,7 @@ runs:
   steps:
     - name: Pip Caching
       if: ${{ inputs.cache_python }} == 'true'
-      uses: actions/cache@v3
+      uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
       with:
         path: |
           ~/.cache/pip
@@ -19,7 +19,7 @@ runs:
           ${{ inputs.cache-key }}-pip-${{ runner.os }}-
 
     - name: Npm Caching
-      uses: actions/cache@v3
+      uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
       with:
         path: |
           ~/.npm
@@ -28,7 +28,7 @@ runs:
           ${{ inputs.cache-key }}-npm-${{ runner.os }}-
 
     - name: pnpm Caching
-      uses: actions/cache@v3
+      uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
       with:
         path: |
           ~/.local/share/pnpm/store
@@ -38,7 +38,7 @@ runs:
 
     # this intentionally does not use restore-keys so we don't mess with gradle caching
     - name: Gradle and Python Caching
-      uses: actions/cache@v3
+      uses: actions/cache@6f8efc29b200d32929f49075959781ed54ec270c # v3.5.0
       with:
         path: |
           ~/.gradle/caches
