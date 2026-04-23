@@ -10,6 +10,7 @@ on:
         - source-zendesk-support
         - source-salesforce
         - source-marketo
+        - source-klaviyo
 
         # The below options are commented. If you need to activate them or add new ones, you will have to update
         # the list of ecr-repository as well: https://github.com/rudderlabs/rudder-devops/pull/2137
